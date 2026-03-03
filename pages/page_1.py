@@ -509,17 +509,34 @@ if "Tous les magasins" in (st.session_state.get("stores_selected") or []):
 else:
     df_plot["magasin"] = df_plot["store_name"]
 
+# Ajoute une clé de tri "period_order" (date/nombre) + un label "period" (affichage)
 if granularity == "Jour":
-    df_plot["period"] = df_plot["period_date"].dt.date.astype(str)
+    df_plot["period"] = df_plot["period_date"].dt.strftime("%Y-%m-%d")
+    df_plot["period_order"] = df_plot["period_date"]  # datetime -> tri OK
+
 elif granularity == "Semaine":
     df_plot["period"] = df_plot["iso_label"]
-else:
-    df_plot["period"] = df_plot["period_date"].dt.to_period("M").astype(str)
+    df_plot["period_order"] = df_plot["iso_key"]      # tri OK (année + semaine)
 
-agg = df_plot.groupby(["period", "magasin"], as_index=False)["ventes_ttc"].sum()
+else:  # Mois
+    df_plot["period"] = df_plot["period_date"].dt.to_period("M").astype(str)
+    df_plot["period_order"] = df_plot["period_date"].dt.to_period("M").dt.to_timestamp()    # datetime -> tri OK
+
+# On garde period_order dans l'agg (min suffit car constant par période)
+agg = (
+    df_plot.groupby(["period", "magasin"], as_index=False)
+    .agg(
+        ventes_ttc=("ventes_ttc", "sum"),
+        period_order=("period_order", "min"),
+    )
+)
 
 chart = alt.Chart(agg).mark_line(point=True).encode(
-    x=alt.X("period:N", title=f"Période ({granularity})", sort=None),
+    x=alt.X(
+        "period:N",
+        title=f"Période ({granularity})",
+        sort=alt.SortField(field="period_order", order="ascending"),
+    ),
     y=alt.Y("ventes_ttc:Q", title="CA TTC"),
     color=alt.Color("magasin:N", title="Magasin"),
     tooltip=["magasin", "period", alt.Tooltip("ventes_ttc:Q", format=".2f")]
@@ -528,7 +545,6 @@ chart = alt.Chart(agg).mark_line(point=True).encode(
 st.altair_chart(chart, use_container_width=True)
 
 st.divider()
-
 
 # =============================================================================
 # 2) Camembert famille (CA TTC)
