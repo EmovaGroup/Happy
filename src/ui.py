@@ -1,4 +1,4 @@
-# src/ui.py  ✅ FIX DUPLICATE BUTTON IDs + ACTIVE STYLE
+# src/ui.py
 import base64
 import re
 from pathlib import Path
@@ -37,11 +37,243 @@ def _inject_topbar_css():
     st.markdown(
         """
 <style>
-  .topbar-wrap { display:flex; align-items:center; justify-content:space-between; gap:14px; margin-top: 4px; margin-bottom: 6px; }
-  .topbar-left { display:flex; align-items:center; gap:14px; min-width: 0; }
-  .topbar-logo { height: 42px; width: auto; display:block; }
-  .topbar-welcome { font-weight: 900; font-size: 22px; line-height: 1; color: #1f6feb; white-space: nowrap; }
-  @media (max-width: 720px) { .topbar-welcome { font-size: 18px; } .topbar-logo { height: 36px; } }
+:root{
+  --emova-green: #95d1bd;
+  --emova-green-dark: #7fbda8;
+  --emova-dark: #585857;
+  --emova-light: #d1d3d4;
+  --emova-white: #ffffff;
+  --emova-soft: #edf7f3;
+}
+
+/* ============================================================================
+TOPBAR
+============================================================================ */
+.topbar-wrap{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:14px;
+  margin-top:4px;
+  margin-bottom:6px;
+}
+
+.topbar-left{
+  display:flex;
+  align-items:center;
+  gap:14px;
+  min-width:0;
+}
+
+.topbar-logo{
+  height:42px;
+  width:auto;
+  display:block;
+}
+
+.topbar-welcome{
+  font-weight:900;
+  font-size:22px;
+  line-height:1;
+  color:var(--emova-dark);
+  white-space:nowrap;
+}
+
+@media (max-width: 720px){
+  .topbar-welcome{ font-size:18px; }
+  .topbar-logo{ height:36px; }
+}
+
+/* ============================================================================
+TITRES
+============================================================================ */
+h1, h2, h3, h4, h5, h6{
+  color: var(--emova-dark) !important;
+  font-weight: 900 !important;
+}
+
+/* ============================================================================
+BOUTONS GLOBAUX
+============================================================================ */
+.stButton > button,
+.stDownloadButton > button{
+  width:100%;
+  border-radius:10px !important;
+  border:1px solid var(--emova-light) !important;
+  background:var(--emova-green) !important;
+  color:var(--emova-white) !important;
+  font-weight:900 !important;
+  box-shadow:0 2px 8px rgba(88,88,87,0.08) !important;
+  transition:all .18s ease !important;
+}
+
+.stButton > button:hover,
+.stDownloadButton > button:hover{
+  background:var(--emova-green-dark) !important;
+  border:1px solid var(--emova-green-dark) !important;
+  color:var(--emova-white) !important;
+}
+
+.stButton > button:focus,
+.stDownloadButton > button:focus{
+  box-shadow:0 0 0 .18rem rgba(149,209,189,.35) !important;
+  outline:none !important;
+}
+
+/* styles pour les boutons secondary */
+.stButton > button[kind="secondary"]{
+  background:var(--emova-white) !important;
+  color:var(--emova-dark) !important;
+  border:1px solid var(--emova-light) !important;
+  font-weight:800 !important;
+  box-shadow:none !important;
+}
+
+.stButton > button[kind="secondary"]:hover{
+  background:#f6faf8 !important;
+  border-color:var(--emova-green) !important;
+  color:var(--emova-dark) !important;
+}
+
+/* ============================================================================
+NAVIGATION
+============================================================================ */
+.nav-row{
+  margin-top:6px;
+  margin-bottom:10px;
+}
+
+/* ============================================================================
+SELECTBOX / MULTISELECT
+============================================================================ */
+div[data-baseweb="select"] > div{
+  border-radius:10px !important;
+  border:1px solid var(--emova-light) !important;
+  min-height:42px !important;
+  box-shadow:none !important;
+}
+
+div[data-baseweb="select"] > div:hover{
+  border-color:var(--emova-green) !important;
+}
+
+div[data-baseweb="select"] *{
+  color:var(--emova-dark) !important;
+}
+
+div[data-baseweb="tag"]{
+  background:var(--emova-soft) !important;
+  border:1px solid var(--emova-light) !important;
+  border-radius:8px !important;
+}
+
+div[data-baseweb="tag"] span{
+  color:var(--emova-dark) !important;
+  font-weight:700 !important;
+}
+
+div[data-baseweb="tag"] svg{
+  fill:var(--emova-dark) !important;
+  color:var(--emova-dark) !important;
+}
+
+/* fallback multiselect */
+[data-testid="stMultiSelect"] [data-baseweb="tag"]{
+  background:var(--emova-soft) !important;
+  border:1px solid var(--emova-light) !important;
+}
+
+[data-testid="stMultiSelect"] [data-baseweb="tag"] *{
+  color:var(--emova-dark) !important;
+  fill:var(--emova-dark) !important;
+}
+
+/* ============================================================================
+DATE INPUT
+============================================================================ */
+.stDateInput > div > div{
+  border-radius:10px !important;
+  border:1px solid var(--emova-light) !important;
+}
+
+.stDateInput > div > div:hover{
+  border-color:var(--emova-green) !important;
+}
+
+/* ============================================================================
+RADIO
+============================================================================ */
+div[role="radiogroup"] label{
+  color:var(--emova-dark) !important;
+  font-weight:700 !important;
+}
+
+div[role="radiogroup"] input[type="radio"]{
+  accent-color: var(--emova-green) !important;
+}
+
+/* ============================================================================
+SLIDER
+============================================================================ */
+.stSlider{
+  padding-top:4px;
+}
+
+.stSlider label{
+  color:var(--emova-dark) !important;
+  font-weight:800 !important;
+}
+
+.stSlider span{
+  color:var(--emova-dark) !important;
+  font-weight:900 !important;
+}
+
+.stSlider [data-baseweb="slider"]{
+  padding-top:8px;
+  padding-bottom:8px;
+}
+
+.stSlider [data-baseweb="slider"] > div{
+  background:transparent !important;
+}
+
+.stSlider [data-baseweb="slider"] > div > div{
+  background-color:var(--emova-light) !important;
+  height:4px !important;
+  border-radius:999px !important;
+}
+
+.stSlider [data-baseweb="slider"] div[role="slider"] ~ div{
+  background-color:var(--emova-green) !important;
+  height:4px !important;
+  border-radius:999px !important;
+}
+
+.stSlider [data-baseweb="slider"] div[role="slider"]{
+  background-color:var(--emova-white) !important;
+  border:3px solid var(--emova-green) !important;
+  box-shadow:0 0 0 1px var(--emova-green) !important;
+}
+
+/* ============================================================================
+DATAFRAME
+============================================================================ */
+[data-testid="stDataFrame"]{
+  border:1px solid var(--emova-light);
+  border-radius:12px;
+  overflow:hidden;
+}
+
+[data-testid="stDataFrame"] [role="columnheader"]{
+  background:var(--emova-green) !important;
+  color:var(--emova-white) !important;
+  font-weight:900 !important;
+}
+
+[data-testid="stDataFrame"] [role="gridcell"]{
+  color:var(--emova-dark) !important;
+}
 </style>
         """,
         unsafe_allow_html=True,
@@ -57,6 +289,7 @@ def top_bar(title: str):
     logo_uri = _logo_data_uri()
 
     left, right = st.columns([6, 2], vertical_alignment="center")
+
     with left:
         if logo_uri:
             st.markdown(
@@ -83,66 +316,34 @@ def top_bar(title: str):
             )
 
     with right:
-        if st.button("Déconnexion", key="btn_logout_topbar", use_container_width=True):
+        if st.button(
+            "Déconnexion",
+            key="btn_logout_topbar",
+            use_container_width=True,
+            type="primary",
+        ):
             logout()
 
     st.title(title)
 
 
 def tabs_nav(active: str = "matrix"):
-    """
-    active: "matrix" | "upload"
-    ✅ Fix StreamlitDuplicateElementId via unique keys
-    ✅ Active button background changes (no "Vous êtes sur ..." text)
-    """
-
-    # CSS: on applique une class wrapper à chaque bouton
-    st.markdown(
-        f"""
-<style>
-  .nav-row {{ margin-top: 6px; margin-bottom: 10px; }}
-
-  .nav-active button {{
-    background: #111827 !important;
-    color: #ffffff !important;
-    border: 1px solid #111827 !important;
-    font-weight: 900 !important;
-  }}
-  .nav-active button:hover {{
-    background: #0b1220 !important;
-    border-color: #0b1220 !important;
-  }}
-
-  .nav-inactive button {{
-    background: #ffffff !important;
-    color: #111827 !important;
-    border: 1px solid #e5e7eb !important;
-    font-weight: 900 !important;
-  }}
-  .nav-inactive button:hover {{
-    background: #f3f4f6 !important;
-  }}
-</style>
-        """,
-        unsafe_allow_html=True,
-    )
-
     c1, c2 = st.columns(2, gap="large")
 
     with c1:
-        st.markdown(
-            f'<div class="{"nav-active" if active=="matrix" else "nav-inactive"} nav-row">',
-            unsafe_allow_html=True,
-        )
-        if st.button("📊 Matrix", key="nav_matrix_btn", use_container_width=True):
+        if st.button(
+            "📊 Happy",
+            key="nav_matrix_btn",
+            use_container_width=True,
+            type="primary" if active == "matrix" else "secondary",
+        ):
             st.switch_page("pages/page_1.py")
-        st.markdown("</div>", unsafe_allow_html=True)
 
     with c2:
-        st.markdown(
-            f'<div class="{"nav-active" if active=="upload" else "nav-inactive"} nav-row">',
-            unsafe_allow_html=True,
-        )
-        if st.button("📄 Upload PDF", key="nav_upload_btn", use_container_width=True):
+        if st.button(
+            "📄 Upload PDF",
+            key="nav_upload_btn",
+            use_container_width=True,
+            type="primary" if active == "upload" else "secondary",
+        ):
             st.switch_page("pages/page_2_upload_pdf.py")
-        st.markdown("</div>", unsafe_allow_html=True)
