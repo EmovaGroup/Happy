@@ -11,89 +11,99 @@ from src.ui import top_bar, tabs_nav
 # =============================================================================
 # Page config
 # =============================================================================
-st.set_page_config(page_title="Matrix — Ventes & Marge", layout="wide")
+st.set_page_config(page_title="Tableau de bord Happy", layout="wide")
 
 # Auth + header
 require_auth()
-top_bar("Matrix — Ventes & Marge")
+top_bar("Tableau de bord Happy")
 tabs_nav(active="matrix")
 
 # =============================================================================
-# CSS — TABLES EXACT LOOK (comme ton screenshot)
+# CSS — PAGE ONLY (le global est dans src/ui.py)
 # =============================================================================
-def inject_tables_css():
+def inject_page_css():
     st.markdown(
         """
 <style>
-/* WRAP */
+:root{
+  --emova-green: #95d1bd;
+  --emova-green-dark: #7fbda8;
+  --emova-dark: #585857;
+  --emova-light: #d1d3d4;
+  --emova-white: #ffffff;
+  --emova-soft: #edf7f3;
+}
+
+/* ============================================================================
+TABLEAU HTML CUSTOM
+============================================================================ */
 .table-wrap{
   width:100%;
   overflow:auto;
-  border:1px solid #e5e7eb;
-  border-radius:10px;
-  background:#ffffff;
+  border:1px solid var(--emova-light);
+  border-radius:12px;
+  background:var(--emova-white);
 }
 
-/* TABLE */
 .table-wrap table{
   border-collapse:separate;
   border-spacing:0;
   width:max-content;
   min-width:100%;
   font-size:12px;
-  background:#ffffff;
 }
 
-/* HEADER */
 .table-wrap thead th{
   position:sticky;
   top:0;
   z-index:5;
-  background:#f3f4f6;
-  border-bottom:1px solid #e5e7eb;
-  border-right:1px solid #e5e7eb;
+  background:var(--emova-green);
+  color:var(--emova-white);
   padding:10px 12px;
+  font-weight:900;
+  border-right:1px solid rgba(255,255,255,0.18);
   white-space:nowrap;
   text-align:center !important;
   vertical-align:middle !important;
-  font-weight:900;
 }
 
-/* CELLS */
 .table-wrap td{
-  background:#ffffff;
+  background:var(--emova-white);
   border-bottom:1px solid #eef2f7;
   border-right:1px solid #eef2f7;
   padding:8px 10px;
+  text-align:center;
+  color:var(--emova-dark);
   white-space:nowrap;
-  text-align:center !important;
   vertical-align:middle !important;
   height:44px;
 }
 
-/* LEFT STICKY (Jour) */
 .table-wrap th.sticky-left,
 .table-wrap td.sticky-left{
   position:sticky;
   left:0;
   z-index:6;
-  background:#f3f4f6 !important;
-  border-right:1px solid #e5e7eb !important;
+  background:var(--emova-soft) !important;
   font-weight:900;
+  border-right:1px solid var(--emova-light) !important;
+  color:var(--emova-dark) !important;
 }
 
-/* RIGHT STICKY (Moyenne) */
 .table-wrap th.sticky-right,
 .table-wrap td.sticky-right{
   position:sticky;
   right:0;
   z-index:6;
-  background:#f3f4f6 !important;
-  border-left:1px solid #e5e7eb !important;
+  background:var(--emova-soft) !important;
   font-weight:900;
+  border-left:1px solid var(--emova-light) !important;
+  color:var(--emova-dark) !important;
 }
 
-/* PILLS */
+/* ============================================================================
+PILLS
+============================================================================ */
 .pill{
   display:inline-flex;
   align-items:center;
@@ -103,71 +113,195 @@ def inject_tables_css():
   border-radius:10px;
   font-weight:900;
   min-width:92px;
-  height:34px;
+  min-height:34px;
   box-sizing:border-box;
-  border:1px solid rgba(0,0,0,0.06);
-  box-shadow: 0 1px 0 rgba(0,0,0,0.04);
+  border:1px solid rgba(0,0,0,0.05);
+  box-shadow:0 1px 0 rgba(0,0,0,0.03);
+  color:var(--emova-dark);
 }
 
 .pill-up{
-  background: rgba(46, 204, 113, 0.18) !important;
+  background:rgba(46,204,113,.18) !important;
 }
 
 .pill-down{
-  background: rgba(231, 76, 60, 0.18) !important;
+  background:rgba(231,76,60,.18) !important;
 }
 
 .pill-neutral{
-  background: rgba(127,127,127,0.10) !important;
+  background:rgba(127,127,127,.10) !important;
 }
 
-.arrow-up, .arrow-down{
+.arrow-up,
+.arrow-down{
   font-size:11px;
   line-height:1;
   font-weight:900;
-  color:#111;
+  color:var(--emova-dark);
 }
 
-/* TOTAL row */
+/* TOTAL */
 .tr-total td{
-  background:#f9fafb !important;
+  background:#f5f8f7 !important;
   font-weight:900 !important;
 }
+
 .tr-total td.sticky-left{
-  background:#f3f4f6 !important;
+  background:var(--emova-soft) !important;
+}
+
+/* ============================================================================
+KPI CARDS
+============================================================================ */
+.emova-kpi-card{
+  border:2px solid var(--emova-green);
+  border-radius:14px;
+  padding:18px 16px;
+  text-align:center;
+  background:var(--emova-white);
+  height:112px;
+  display:flex;
+  flex-direction:column;
+  justify-content:center;
+  align-items:center;
+  margin:6px 4px 10px 4px;
+  box-shadow:0 4px 10px rgba(88,88,87,0.06);
+}
+
+.emova-kpi-title{
+  font-size:13px;
+  font-weight:800;
+  color:var(--emova-dark);
+  margin-bottom:8px;
+}
+
+.emova-kpi-value{
+  font-size:28px;
+  font-weight:900;
+  color:var(--emova-green);
+  line-height:1.1;
+}
+
+/* ============================================================================
+RAYON CARDS
+============================================================================ */
+.rayon-card{
+  border:2px solid var(--emova-green);
+  border-radius:14px;
+  padding:18px;
+  background:var(--emova-white);
+  box-shadow:0 4px 12px rgba(149,209,189,0.18);
+}
+
+.rayon-title{
+  color:var(--emova-dark);
+  font-weight:900;
+  font-size:14px;
+  margin-bottom:12px;
+  text-align:center;
+}
+
+.rayon-center{
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  justify-content:center;
+  text-align:center;
+  width:100%;
+  margin-bottom:14px;
+}
+
+.rayon-sub{
+  font-size:11px;
+  color:var(--emova-dark);
+  margin-bottom:6px;
+  font-weight:700;
+  text-transform:uppercase;
+  letter-spacing:.4px;
+}
+
+.rayon-main-value{
+  font-size:28px;
+  font-weight:900;
+  color:var(--emova-green);
+  line-height:1.2;
+}
+
+.rayon-grid{
+  display:flex;
+  gap:12px;
+  margin-top:10px;
+}
+
+.rayon-mini{
+  flex:1;
+  background:#f8f8f8;
+  border:1px solid var(--emova-light);
+  border-radius:10px;
+  padding:10px;
+  text-align:center;
+}
+
+.rayon-mini-label{
+  font-size:11px;
+  color:var(--emova-dark);
+  font-weight:700;
+  margin-bottom:6px;
+}
+
+.rayon-mini-value{
+  font-size:20px;
+  font-weight:900;
+  color:var(--emova-green);
+}
+
+/* ============================================================================
+Granularité buttons
+============================================================================ */
+.granularity-note{
+  font-size: 0.001px;
 }
 </style>
         """,
         unsafe_allow_html=True,
     )
 
-inject_tables_css()
+
+inject_page_css()
 
 # =============================================================================
 # Helpers
 # =============================================================================
 JOURS = ["Lundi", "Mardi", "Mercredi", "Jeudi", "Vendredi", "Samedi", "Dimanche"]
-JOURS_MAP = {0: "Lundi", 1: "Mardi", 2: "Mercredi", 3: "Jeudi", 4: "Vendredi", 5: "Samedi", 6: "Dimanche"}
+JOURS_MAP = {
+    0: "Lundi",
+    1: "Mardi",
+    2: "Mercredi",
+    3: "Jeudi",
+    4: "Vendredi",
+    5: "Samedi",
+    6: "Dimanche",
+}
+
 
 def fmt_eur(x):
     if pd.isna(x):
         return ""
     return f"{x:,.2f} €".replace(",", " ").replace(".", ",")
 
+
 def fmt_int(x):
     if pd.isna(x):
         return ""
     return f"{int(round(x)):,.0f}".replace(",", " ")
 
+
 def last_weeks(iso_keys, n=3):
     uniq = sorted(pd.Series(iso_keys).dropna().unique().tolist())
     return uniq[-n:] if len(uniq) >= n else uniq
 
+
 def render_heat_table(df_wide: pd.DataFrame, euro: bool, title: str, dl_name: str):
-    """
-    df_wide attendu = colonnes: Jour + semaines... + Moyenne
-    Style = identique au screenshot (pills + fond + sticky)
-    """
     cols = list(df_wide.columns)
     if "Jour" not in cols or "Moyenne" not in cols:
         st.error("Tableau invalide : il manque Jour ou Moyenne.")
@@ -179,7 +313,6 @@ def render_heat_table(df_wide: pd.DataFrame, euro: bool, title: str, dl_name: st
         if pd.isna(val):
             return ""
 
-        # si pas de base => neutre
         if base is None or pd.isna(base):
             cls = "pill pill-neutral"
             arrow = ""
@@ -218,20 +351,16 @@ def render_heat_table(df_wide: pd.DataFrame, euro: bool, title: str, dl_name: st
         tbody += "</tr>"
     tbody += "</tbody>"
 
-    st.markdown(
-        f"""
-        <div style="margin-top:10px;margin-bottom:8px;">
-          <h4 style="margin:8px 0 12px 0;">{title}</h4>
-          <div class="table-wrap">
-            <table>
-              {thead}
-              {tbody}
-            </table>
-          </div>
-        </div>
-        """,
-        unsafe_allow_html=True,
+    html = (
+        f'<div style="margin-top:10px;margin-bottom:8px;">'
+        f'<h4 style="margin:8px 0 12px 0;color:#585857;">{title}</h4>'
+        f'<div class="table-wrap">'
+        f'<table>{thead}{tbody}</table>'
+        f'</div>'
+        f'</div>'
     )
+
+    st.markdown(html, unsafe_allow_html=True)
 
     csv = df_wide.to_csv(index=False, sep=";", encoding="utf-8")
     st.download_button(
@@ -239,32 +368,58 @@ def render_heat_table(df_wide: pd.DataFrame, euro: bool, title: str, dl_name: st
         data=csv,
         file_name=f"{dl_name}.csv",
         mime="text/csv",
+        key=f"download_{dl_name}",
+        use_container_width=True,
     )
 
+
+def sum_numeric_cols(df_in: pd.DataFrame, cols: list[str]) -> dict:
+    return {c: pd.to_numeric(df_in[c], errors="coerce").sum() for c in cols}
+
+
+def mean_numeric_cols(df_in: pd.DataFrame, cols: list[str]) -> dict:
+    return {c: pd.to_numeric(df_in[c], errors="coerce").mean() for c in cols}
+
+
 # =============================================================================
-# Load filters (min/max + stores)  ✅ FIX: supabase créé dans le cache
+# Load filters
 # =============================================================================
 @st.cache_data(ttl=300)
 def load_filters():
     supabase = get_supabase()
 
-    r1 = supabase.table("v_matrix").select("period_date").order("period_date", desc=False).limit(1).execute()
-    r2 = supabase.table("v_matrix").select("period_date").order("period_date", desc=True).limit(1).execute()
-
-    table = (
+    r1 = (
         supabase.table("v_matrix")
-        .select("store_name")
-        .neq("store_name", "")
-        .order("store_name", desc=False)
+        .select("period_date")
+        .order("period_date", desc=False)
+        .limit(1)
+        .execute()
+    )
+    r2 = (
+        supabase.table("v_matrix")
+        .select("period_date")
+        .order("period_date", desc=True)
+        .limit(1)
+        .execute()
     )
 
     batch_size = 1000
     offset = 0
     all_stores = []
+
     while True:
-        res = table.range(offset, offset + batch_size - 1).execute()
+        res = (
+            supabase.table("v_matrix")
+            .select("store_name")
+            .neq("store_name", "")
+            .order("store_name", desc=False)
+            .range(offset, offset + batch_size - 1)
+            .execute()
+        )
+
         if not res.data:
             break
+
         all_stores.extend(res.data)
         offset += batch_size
 
@@ -274,7 +429,9 @@ def load_filters():
     dmin = pd.to_datetime(r1.data[0]["period_date"]).date()
     dmax = pd.to_datetime(r2.data[0]["period_date"]).date()
     stores = sorted({row["store_name"] for row in all_stores if row.get("store_name")})
+
     return dmin, dmax, stores
+
 
 dmin, dmax, stores = load_filters()
 if dmin is None:
@@ -282,33 +439,39 @@ if dmin is None:
     st.stop()
 
 # =============================================================================
-# Load data  ✅ FIX: supabase créé dans le cache
+# Load data
 # =============================================================================
 @st.cache_data(ttl=300)
 def load_data(dstart: date, dend: date, store_names: list[str]) -> pd.DataFrame:
     supabase = get_supabase()
 
-    cols = "store_name,period_date,code_article,libelle_final,famille_finale,rayon,code_rayon,qte,ventes_ht,ventes_ttc,marge_ht,marge_pct"
-
-    query = (
-        supabase.table("v_matrix")
-        .select(cols)
-        .gte("period_date", dstart.isoformat())
-        .lte("period_date", dend.isoformat())
-        .order("period_date", desc=False)
-        .order("store_name", desc=False)
+    cols = (
+        "store_name,period_date,code_article,libelle_final,"
+        "famille_finale,rayon,code_rayon,qte,ventes_ht,ventes_ttc,marge_ht,marge_pct"
     )
-
-    if store_names and "Tous les magasins" not in store_names:
-        query = query.in_("store_name", store_names)
 
     batch_size = 1000
     offset = 0
     all_data = []
+
     while True:
+        query = (
+            supabase.table("v_matrix")
+            .select(cols)
+            .gte("period_date", dstart.isoformat())
+            .lte("period_date", dend.isoformat())
+            .order("period_date", desc=False)
+            .order("store_name", desc=False)
+        )
+
+        if store_names and "Tous les magasins" not in store_names:
+            query = query.in_("store_name", store_names)
+
         res = query.range(offset, offset + batch_size - 1).execute()
+
         if not res.data:
             break
+
         all_data.extend(res.data)
         offset += batch_size
 
@@ -317,6 +480,7 @@ def load_data(dstart: date, dend: date, store_names: list[str]) -> pd.DataFrame:
         return df
 
     df["period_date"] = pd.to_datetime(df["period_date"])
+
     for c in ["qte", "ventes_ht", "ventes_ttc", "marge_ht", "marge_pct"]:
         if c in df.columns:
             df[c] = pd.to_numeric(df[c], errors="coerce")
@@ -330,16 +494,30 @@ def load_data(dstart: date, dend: date, store_names: list[str]) -> pd.DataFrame:
 
     return df
 
+
 # =============================================================================
 # UI Filters
 # =============================================================================
-st.markdown("### 📊 Matrix — Ventes & Marge")
+st.markdown(
+    """
+    <h2 style="color:#585857;font-weight:900;margin-bottom:12px;">
+        📊 Tableau de bord
+    </h2>
+    """,
+    unsafe_allow_html=True,
+)
 
 col_filters = st.columns([2, 2, 3])
 
 with col_filters[0]:
     st.markdown("**📅 Période**")
-    drange = st.date_input("", value=(dmin, dmax), min_value=dmin, max_value=dmax, label_visibility="collapsed")
+    drange = st.date_input(
+        "",
+        value=(dmin, dmax),
+        min_value=dmin,
+        max_value=dmax,
+        label_visibility="collapsed",
+    )
 
 if isinstance(drange, tuple) and len(drange) == 2:
     dstart, dend = drange
@@ -348,14 +526,52 @@ else:
 
 with col_filters[1]:
     st.markdown("**⏱️ Granularité**")
-    granularity = st.radio("", ["Jour", "Semaine", "Mois"], horizontal=True, label_visibility="collapsed")
+
+    if "granularity_matrix" not in st.session_state:
+        st.session_state["granularity_matrix"] = "Jour"
+
+    g1, g2, g3 = st.columns(3)
+
+    with g1:
+        if st.button(
+            "Jour",
+            key="granularity_jour",
+            use_container_width=True,
+            type="primary" if st.session_state["granularity_matrix"] == "Jour" else "secondary",
+        ):
+            st.session_state["granularity_matrix"] = "Jour"
+
+    with g2:
+        if st.button(
+            "Semaine",
+            key="granularity_semaine",
+            use_container_width=True,
+            type="primary" if st.session_state["granularity_matrix"] == "Semaine" else "secondary",
+        ):
+            st.session_state["granularity_matrix"] = "Semaine"
+
+    with g3:
+        if st.button(
+            "Mois",
+            key="granularity_mois",
+            use_container_width=True,
+            type="primary" if st.session_state["granularity_matrix"] == "Mois" else "secondary",
+        ):
+            st.session_state["granularity_matrix"] = "Mois"
+
+    granularity = st.session_state["granularity_matrix"]
 
 with col_filters[2]:
     st.markdown("**🏬 Magasins à comparer**")
     store_options = ["Tous les magasins"] + stores
-    selected_stores = st.multiselect("", store_options, default=["Tous les magasins"], label_visibility="collapsed")
+    selected_stores = st.multiselect(
+        "",
+        store_options,
+        default=["Tous les magasins"],
+        label_visibility="collapsed",
+    )
 
-if st.button("⚡ Charger / Actualiser les données", type="primary"):
+if st.button("⚡ Charger / Actualiser les données", key="btn_load_matrix_data", type="primary"):
     st.session_state["stores_selected"] = selected_stores
     st.session_state["df"] = load_data(dstart, dend, selected_stores)
 
@@ -365,6 +581,7 @@ df = st.session_state.get("df")
 if df is None:
     st.info("Clique sur ⚡ Charger / Actualiser les données pour afficher le dashboard.")
     st.stop()
+
 if df.empty:
     st.warning("Aucune ligne pour ces filtres.")
     st.stop()
@@ -374,156 +591,160 @@ if df.empty:
 # =============================================================================
 def kpi_card(title, value, emoji):
     return f"""
-    <div style="
-        border: 2px solid #e00000;
-        border-radius: 14px;
-        padding: 22px 20px;
-        text-align: center;
-        background-color: #ffffff;
-        height: 120px;
-        display: flex;
-        flex-direction: column;
-        justify-content: center;
-        align-items: center;
-        margin: 12px 8px 20px 8px;
-        box-shadow: 0 4px 10px rgba(0,0,0,0.04);
-    ">
-        <div style="
-            font-size: 14px;
-            font-weight: 800;
-            color: #b00000;
-            margin-bottom: 10px;
-        ">
-            {emoji} {title}
-        </div>
-        <div style="
-            font-size: 30px;
-            font-weight: 900;
-            color: #111;
-        ">
-            {value}
-        </div>
+    <div class="emova-kpi-card">
+        <div class="emova-kpi-title">{emoji} {title}</div>
+        <div class="emova-kpi-value">{value}</div>
     </div>
     """
 
-k1, k2, k3 = st.columns(3, gap="large")
-k4, k5, k6 = st.columns(3, gap="large")
+
+k1, k2, k3 = st.columns(3, gap="small")
+k4, k5, k6 = st.columns(3, gap="small")
 
 ca_ttc = df["ventes_ttc"].sum()
 ca_ht = df["ventes_ht"].sum()
 qte = df["qte"].sum()
-marge_ht = df["marge_ht"].sum()
-marge_pct = (marge_ht / ca_ht * 100) if ca_ht else 0.0
+commission_pct = 20
+commission_carrefour = ca_ht * 0.20
 prix_moy = (ca_ttc / qte) if qte else 0.0
 
-with k1: st.markdown(kpi_card("CA TTC", fmt_eur(ca_ttc), "💰"), unsafe_allow_html=True)
-with k2: st.markdown(kpi_card("Nombre d'articles vendus", fmt_int(qte), "🧾"), unsafe_allow_html=True)
-with k3: st.markdown(kpi_card("Prix moyen d'article", fmt_eur(prix_moy), "📦"), unsafe_allow_html=True)
-with k4: st.markdown(kpi_card("CA HT", fmt_eur(ca_ht), "📊"), unsafe_allow_html=True)
-with k5: st.markdown(kpi_card("Marge HT", fmt_eur(marge_ht), "🏦"), unsafe_allow_html=True)
-with k6: st.markdown(kpi_card("Marge %", f"{marge_pct:,.2f} %".replace(",", " ").replace(".", ","), "🔥"), unsafe_allow_html=True)
+with k1:
+    st.markdown(kpi_card("CA TTC", fmt_eur(ca_ttc), "💰"), unsafe_allow_html=True)
+with k2:
+    st.markdown(kpi_card("Nombre d'articles vendus", fmt_int(qte), "🧾"), unsafe_allow_html=True)
+with k3:
+    st.markdown(kpi_card("Prix moyen d'article", fmt_eur(prix_moy), "📦"), unsafe_allow_html=True)
+with k4:
+    st.markdown(kpi_card("CA HT", fmt_eur(ca_ht), "📊"), unsafe_allow_html=True)
+with k5:
+    st.markdown(
+        kpi_card("Commission Carrefour", "20 %", "🏬"),
+        unsafe_allow_html=True,
+    )
+with k6:
+    st.markdown(
+        kpi_card("Commission estimée", fmt_eur(commission_carrefour), "💰"),
+        unsafe_allow_html=True,
+    )
 
 st.divider()
 
 # =============================================================================
-# 1bis) KPIs Rayons (Plantes / Fleurs / Accessoires) — CA / Qte / Prix moyen
+# 1bis) KPIs Rayons (Plantes / Fleurs / Accessoires)
 # =============================================================================
-st.markdown("## 🌿 KPIs — Plantes / Fleurs / Accessoires")
+st.markdown(
+    """
+    <h2 style="color:#585857;font-weight:900;margin-top:10px;margin-bottom:18px;">
+        🌿 KPIs — Plantes / Fleurs / Accessoires
+    </h2>
+    """,
+    unsafe_allow_html=True,
+)
 
 RAYON_KEYS = {
-    "Plantes": ["plante", "plantes", "plantes fleuries", "plantes vertes", "succulentes", "cactées", "cactee", "cactus"],
-    "Fleurs": ["fleur", "fleurs", "bouquet", "bouquets", "bottes", "brassées", "brassees", "compositions", "piquées", "piquees"],
-    "Accessoires": ["accessoire", "accessoires", "cache", "cache-pot", "cache pot", "vase", "emballage", "ruban", "carte", "bougie", "terreau", "engrais"]
+    "Plantes": ["plante", "plantes", "plantes fleuries", "plantes vertes", "succulentes", "cactus"],
+    "Fleurs": ["fleur", "fleurs", "bouquet", "bouquets", "bottes", "compositions", "rose"],
+    "Accessoires": ["accessoire", "accessoires", "cache", "cache-pot", "vase", "emballage", "bougie", "terreau"],
 }
 
-def classify_rayon(r: str) -> str:
-    if not isinstance(r, str) or not r.strip():
+
+def classify_rayon(r):
+    if pd.isna(r):
         return "Autres"
-    rr = r.strip().lower()
+
+    r = str(r).strip().lower()
     for label, keys in RAYON_KEYS.items():
-        if any(k in rr for k in keys):
+        if any(k in r for k in keys):
             return label
     return "Autres"
 
-df_r = df.copy()
-df_r["rayon_norm"] = df_r.get("rayon", pd.Series([None] * len(df_r))).apply(classify_rayon)
 
+df_r = df.copy()
+df_r["rayon_norm"] = df_r["rayon"].apply(classify_rayon)
 df_r3 = df_r[df_r["rayon_norm"].isin(["Plantes", "Fleurs", "Accessoires"])].copy()
 
-def _kpi_rayon_card(rayon_name: str, ca_ttc: float, qte: float):
-    prix_moy = (ca_ttc / qte) if qte else 0.0
-    return f"""
-    <div style="border:2px solid #e00000;border-radius:14px;padding:16px 18px;background:#fff;
-                display:flex;align-items:center;justify-content:space-between;gap:18px;">
-      <div style="min-width:180px;">
-        <div style="font-size:15px;font-weight:900;color:#b00000;">{rayon_name}</div>
-        <div style="font-size:22px;font-weight:900;color:#000;margin-top:4px;">{fmt_eur(ca_ttc)}</div>
-        <div style="font-size:12px;opacity:0.75;margin-top:2px;">CA TTC</div>
-      </div>
 
-      <div style="display:flex;gap:14px;flex-wrap:wrap;justify-content:flex-end;">
-        <div style="border:1px solid rgba(0,0,0,0.12);border-radius:12px;padding:10px 12px;min-width:150px;text-align:center;">
-          <div style="font-size:12px;font-weight:800;opacity:0.8;">🧾 Qté</div>
-          <div style="font-size:18px;font-weight:900;">{fmt_int(qte)}</div>
-        </div>
-        <div style="border:1px solid rgba(0,0,0,0.12);border-radius:12px;padding:10px 12px;min-width:150px;text-align:center;">
-          <div style="font-size:12px;font-weight:800;opacity:0.8;">📦 Prix moyen</div>
-          <div style="font-size:18px;font-weight:900;">{fmt_eur(prix_moy)}</div>
-        </div>
-      </div>
-    </div>
-    """
+def render_rayon_card(title, ca, qte):
+    prix_moy = (ca / qte) if qte else 0
 
-if df_r3.empty:
-    st.info("Pas de données sur les rayons Plantes / Fleurs / Accessoires pour ces filtres.")
-else:
-    order_rayons = ["Plantes", "Fleurs", "Accessoires"]
-    agg = df_r3.groupby("rayon_norm", as_index=False).agg(
-        ca_ttc=("ventes_ttc", "sum"),
-        qte=("qte", "sum"),
+    html = (
+        f'<div class="rayon-card">'
+        f'<div class="rayon-title">{title}</div>'
+        f'<div class="rayon-center">'
+        f'<div class="rayon-sub">CA TTC</div>'
+        f'<div class="rayon-main-value">{fmt_eur(ca)}</div>'
+        f'</div>'
+        f'<div class="rayon-grid">'
+        f'<div class="rayon-mini">'
+        f'<div class="rayon-mini-label">🧾 Qté</div>'
+        f'<div class="rayon-mini-value">{fmt_int(qte)}</div>'
+        f'</div>'
+        f'<div class="rayon-mini">'
+        f'<div class="rayon-mini-label">📦 Prix moyen</div>'
+        f'<div class="rayon-mini-value">{fmt_eur(prix_moy)}</div>'
+        f'</div>'
+        f'</div>'
+        f'</div>'
     )
-    agg["rayon_norm"] = pd.Categorical(agg["rayon_norm"], categories=order_rayons, ordered=True)
-    agg = agg.sort_values("rayon_norm")
 
-    c1, c2, c3 = st.columns(3, gap="large")
+    st.markdown(html, unsafe_allow_html=True)
 
-    # Remplit chaque colonne (si un rayon manque, on affiche 0)
-    data_map = {r["rayon_norm"]: r for _, r in agg.iterrows()}
-    cols_map = {"Plantes": c1, "Fleurs": c2, "Accessoires": c3}
 
-    for rname in order_rayons:
-        row = data_map.get(rname, {"ca_ttc": 0.0, "qte": 0.0})
-        with cols_map[rname]:
-            st.markdown(_kpi_rayon_card(rname, float(row["ca_ttc"]), float(row["qte"])), unsafe_allow_html=True)
+order_rayons = ["Plantes", "Fleurs", "Accessoires"]
 
-st.divider()
+agg_rayon = df_r3.groupby("rayon_norm", as_index=False).agg(
+    ca_ttc=("ventes_ttc", "sum"),
+    qte=("qte", "sum"),
+)
+
+data_map = {row["rayon_norm"]: row for _, row in agg_rayon.iterrows()}
+
+col1, col2, col3 = st.columns(3)
+cols_map = {
+    "Plantes": col1,
+    "Fleurs": col2,
+    "Accessoires": col3,
+}
+
+for r in order_rayons:
+    row = data_map.get(r, {"ca_ttc": 0, "qte": 0})
+    with cols_map[r]:
+        render_rayon_card(
+            r,
+            float(row["ca_ttc"]),
+            float(row["qte"]),
+        )
 
 # =============================================================================
 # 1) Graph comparaison magasins (CA TTC)
 # =============================================================================
-st.markdown("### 📈 Comparaison des magasins — CA TTC")
+st.markdown(
+    """
+    <h3 style="color:#585857;font-weight:900;margin-top:8px;">
+        📈 Comparaison des magasins — CA TTC
+    </h3>
+    """,
+    unsafe_allow_html=True,
+)
 
 df_plot = df.copy()
+
 if "Tous les magasins" in (st.session_state.get("stores_selected") or []):
     df_plot["magasin"] = "Tous les magasins"
 else:
     df_plot["magasin"] = df_plot["store_name"]
 
-# Ajoute une clé de tri "period_order" (date/nombre) + un label "period" (affichage)
 if granularity == "Jour":
     df_plot["period"] = df_plot["period_date"].dt.strftime("%Y-%m-%d")
-    df_plot["period_order"] = df_plot["period_date"]  # datetime -> tri OK
-
+    df_plot["period_order"] = df_plot["period_date"]
 elif granularity == "Semaine":
     df_plot["period"] = df_plot["iso_label"]
-    df_plot["period_order"] = df_plot["iso_key"]      # tri OK (année + semaine)
-
-else:  # Mois
+    df_plot["period_order"] = df_plot["iso_key"]
+else:
     df_plot["period"] = df_plot["period_date"].dt.to_period("M").astype(str)
-    df_plot["period_order"] = df_plot["period_date"].dt.to_period("M").dt.to_timestamp()    # datetime -> tri OK
+    df_plot["period_order"] = df_plot["period_date"].dt.to_period("M").dt.to_timestamp()
 
-# On garde period_order dans l'agg (min suffit car constant par période)
-agg = (
+agg_chart = (
     df_plot.groupby(["period", "magasin"], as_index=False)
     .agg(
         ventes_ttc=("ventes_ttc", "sum"),
@@ -531,15 +752,19 @@ agg = (
     )
 )
 
-chart = alt.Chart(agg).mark_line(point=True).encode(
+chart = alt.Chart(agg_chart).mark_line(point=True).encode(
     x=alt.X(
         "period:N",
         title=f"Période ({granularity})",
         sort=alt.SortField(field="period_order", order="ascending"),
     ),
     y=alt.Y("ventes_ttc:Q", title="CA TTC"),
-    color=alt.Color("magasin:N", title="Magasin"),
-    tooltip=["magasin", "period", alt.Tooltip("ventes_ttc:Q", format=".2f")]
+    color=alt.Color(
+        "magasin:N",
+        title="Magasin",
+        scale=alt.Scale(range=["#95d1bd", "#585857", "#7fbda8", "#d1d3d4"]),
+    ),
+    tooltip=["magasin", "period", alt.Tooltip("ventes_ttc:Q", format=".2f")],
 ).properties(height=320)
 
 st.altair_chart(chart, use_container_width=True)
@@ -547,12 +772,24 @@ st.altair_chart(chart, use_container_width=True)
 st.divider()
 
 # =============================================================================
-# 2) Camembert famille (CA TTC)
+# 2) Donut famille (CA TTC)
 # =============================================================================
-st.markdown("### 🔥 Répartition du CA TTC par famille")
+st.markdown(
+    """
+    <h3 style="color:#585857;font-weight:900;">
+        🔥 Répartition du CA TTC par famille
+    </h3>
+    """,
+    unsafe_allow_html=True,
+)
 
 stores_for_pie = ["Tous magasins"] + sorted(df["store_name"].dropna().unique().tolist())
-pick_store = st.selectbox("Choisir le magasin pour le camembert", stores_for_pie, index=0)
+pick_store = st.selectbox(
+    "Choisir le magasin pour le donut",
+    stores_for_pie,
+    index=0,
+    key="select_pie_store",
+)
 
 df_pie = df.copy()
 if pick_store != "Tous magasins":
@@ -565,28 +802,58 @@ if pie.empty:
     st.info("Pas de données famille sur ce filtre.")
 else:
     pie["pct"] = pie["ventes_ttc"] / pie["ventes_ttc"].sum()
-    pie_chart = alt.Chart(pie).mark_arc().encode(
+
+    donut_chart = alt.Chart(pie).mark_arc(innerRadius=70).encode(
         theta=alt.Theta("ventes_ttc:Q"),
-        color=alt.Color("famille_finale:N", title="Famille"),
-        tooltip=["famille_finale", alt.Tooltip("ventes_ttc:Q", format=".2f"), alt.Tooltip("pct:Q", format=".1%")]
+        color=alt.Color(
+            "famille_finale:N",
+            title="Famille",
+            scale=alt.Scale(
+                range=[
+                    "#4c78a8",
+                    "#f58518",
+                    "#54a24b",
+                    "#e45756",
+                    "#72b7b2",
+                    "#b279a2",
+                    "#ff9da6",
+                    "#9d755d",
+                    "#bab0ab",
+                ]
+            ),
+        ),
+        tooltip=[
+            "famille_finale",
+            alt.Tooltip("ventes_ttc:Q", format=".2f"),
+            alt.Tooltip("pct:Q", format=".1%"),
+        ],
     ).properties(height=320)
-    st.altair_chart(pie_chart, use_container_width=True)
+
+    st.altair_chart(donut_chart, use_container_width=True)
 
 st.divider()
 
 # =============================================================================
 # 3) Top articles (CA TTC)
 # =============================================================================
-st.markdown("### 🏆 Top articles (par CA TTC)")
-top_n = st.slider("Top N", 5, 50, 15)
+st.markdown(
+    """
+    <h3 style="color:#585857;font-weight:900;">
+        🏆 Top articles (par CA TTC)
+    </h3>
+    """,
+    unsafe_allow_html=True,
+)
+
+top_n = st.slider("Top N", 5, 50, 15, key="slider_top_articles")
 
 top_art = df.groupby(["libelle_final"], as_index=False)["ventes_ttc"].sum()
 top_art = top_art.sort_values("ventes_ttc", ascending=False).head(top_n)
 
-bar = alt.Chart(top_art).mark_bar().encode(
+bar = alt.Chart(top_art).mark_bar(color="#95d1bd").encode(
     x=alt.X("ventes_ttc:Q", title="CA TTC"),
     y=alt.Y("libelle_final:N", sort="-x", title="Article"),
-    tooltip=["libelle_final", alt.Tooltip("ventes_ttc:Q", format=".2f")]
+    tooltip=["libelle_final", alt.Tooltip("ventes_ttc:Q", format=".2f")],
 ).properties(height=420)
 
 st.altair_chart(bar, use_container_width=True)
@@ -596,7 +863,14 @@ st.divider()
 # =============================================================================
 # 4) Synthèses semaine (3 tableaux)
 # =============================================================================
-st.markdown("## 📊 Synthèse Articles & CA TTC")
+st.markdown(
+    """
+    <h2 style="color:#585857;font-weight:900;">
+        📊 Synthèse Articles & CA TTC
+    </h2>
+    """,
+    unsafe_allow_html=True,
+)
 
 week_map = (
     df[["iso_key", "iso_label"]]
@@ -615,14 +889,19 @@ pivot_t.columns = [week_map.get(int(c), str(c)) for c in pivot_t.columns]
 tickets_tbl = pivot_t.copy()
 tickets_tbl.insert(0, "Jour", tickets_tbl.index)
 week_cols = [c for c in tickets_tbl.columns if c != "Jour"]
-tickets_tbl["Moyenne"] = tickets_tbl[week_cols].mean(axis=1)
+tickets_tbl["Moyenne"] = tickets_tbl[week_cols].apply(pd.to_numeric, errors="coerce").mean(axis=1)
 
-tot = {c: tickets_tbl[c].sum(numeric_only=True) for c in week_cols}
+tot = sum_numeric_cols(tickets_tbl, week_cols)
 tot["Jour"] = "TOTAL"
-tot["Moyenne"] = pd.Series(tickets_tbl[week_cols].sum(numeric_only=True)).mean()
+tot["Moyenne"] = tickets_tbl[week_cols].apply(pd.to_numeric, errors="coerce").sum().mean()
 tickets_tbl = pd.concat([tickets_tbl, pd.DataFrame([tot])], ignore_index=True)
 
-render_heat_table(tickets_tbl, euro=False, title="🎟️ Synthèse des articles vendus (quantités) par semaine", dl_name="tickets")
+render_heat_table(
+    tickets_tbl,
+    euro=False,
+    title="🎟️ Synthèse des articles vendus (quantités) par semaine",
+    dl_name="tickets",
+)
 
 st.markdown("<div style='height:18px'></div>", unsafe_allow_html=True)
 
@@ -635,14 +914,19 @@ pivot_ca.columns = [week_map.get(int(c), str(c)) for c in pivot_ca.columns]
 ca_tbl = pivot_ca.copy()
 ca_tbl.insert(0, "Jour", ca_tbl.index)
 week_cols_ca = [c for c in ca_tbl.columns if c != "Jour"]
-ca_tbl["Moyenne"] = ca_tbl[week_cols_ca].mean(axis=1)
+ca_tbl["Moyenne"] = ca_tbl[week_cols_ca].apply(pd.to_numeric, errors="coerce").mean(axis=1)
 
-tot = {c: ca_tbl[c].sum(numeric_only=True) for c in week_cols_ca}
+tot = sum_numeric_cols(ca_tbl, week_cols_ca)
 tot["Jour"] = "TOTAL"
-tot["Moyenne"] = pd.Series(ca_tbl[week_cols_ca].sum(numeric_only=True)).mean()
+tot["Moyenne"] = ca_tbl[week_cols_ca].apply(pd.to_numeric, errors="coerce").sum().mean()
 ca_tbl = pd.concat([ca_tbl, pd.DataFrame([tot])], ignore_index=True)
 
-render_heat_table(ca_tbl, euro=True, title="💶 Synthèse CA TTC par semaine", dl_name="ca_ttc")
+render_heat_table(
+    ca_tbl,
+    euro=True,
+    title="💶 Synthèse CA TTC par semaine",
+    dl_name="ca_ttc",
+)
 
 st.markdown("<div style='height:18px'></div>", unsafe_allow_html=True)
 
@@ -660,20 +944,32 @@ pivot_pm.columns = [week_map.get(int(c), str(c)) for c in pivot_pm.columns]
 pm_tbl = pivot_pm.copy()
 pm_tbl.insert(0, "Jour", pm_tbl.index)
 week_cols_pm = [c for c in pm_tbl.columns if c != "Jour"]
-pm_tbl["Moyenne"] = pm_tbl[week_cols_pm].mean(axis=1)
+pm_tbl["Moyenne"] = pm_tbl[week_cols_pm].apply(pd.to_numeric, errors="coerce").mean(axis=1)
 
-tot = {c: pm_tbl[c].mean(numeric_only=True) for c in week_cols_pm}
+tot = mean_numeric_cols(pm_tbl, week_cols_pm)
 tot["Jour"] = "TOTAL"
-tot["Moyenne"] = pm_tbl[week_cols_pm].mean().mean()
+tot["Moyenne"] = pm_tbl[week_cols_pm].apply(pd.to_numeric, errors="coerce").mean().mean()
 pm_tbl = pd.concat([pm_tbl, pd.DataFrame([tot])], ignore_index=True)
 
-render_heat_table(pm_tbl, euro=True, title="🛒 Synthèse Prix moyen d'article par semaine", dl_name="panier_moyen")
+render_heat_table(
+    pm_tbl,
+    euro=True,
+    title="🛒 Synthèse Prix moyen d'article par semaine",
+    dl_name="panier_moyen",
+)
 
 # =============================================================================
 # 5) Graphiques — 3 dernières semaines + Moyenne
 # =============================================================================
 st.divider()
-st.markdown("## 📉 Graphiques — 3 dernières semaines + Moyenne")
+st.markdown(
+    """
+    <h2 style="color:#585857;font-weight:900;">
+        📉 Graphiques — 3 dernières semaines + Moyenne
+    </h2>
+    """,
+    unsafe_allow_html=True,
+)
 
 weeks = sorted(df["iso_key"].dropna().unique().tolist())
 LAST = last_weeks(weeks, n=3)
@@ -704,33 +1000,69 @@ else:
     plot_df["semaine"] = pd.Categorical(plot_df["semaine"], categories=ORDER_DOMAIN, ordered=True)
     plot_df = plot_df.sort_values(["semaine", "jour"])
 
-    st.markdown("### 📈 Évolution des Articles (qte) — 3 dernières semaines + Moyenne")
+    line_domain = [MOY_LABEL] + LAST_LABELS
+    line_range = ["#95d1bd", "#4c78a8", "#f58518", "#e45756"]
+
+    st.markdown(
+        """
+        <h3 style="color:#585857;font-weight:900;">
+            📈 Évolution des Articles (qte) — 3 dernières semaines + Moyenne
+        </h3>
+        """,
+        unsafe_allow_html=True,
+    )
     ch1 = alt.Chart(plot_df).mark_line(point=True).encode(
         x=alt.X("jour:N", sort=JOURS, title="Jour de la semaine"),
         y=alt.Y("qte:Q", title="Articles vendus (qte)"),
-        color=alt.Color("semaine:N", title="Semaine", sort=ORDER_DOMAIN),
-        strokeDash=alt.condition(alt.datum.semaine == MOY_LABEL, alt.value([5, 5]), alt.value([1, 0])),
-        tooltip=["semaine", "jour", alt.Tooltip("qte:Q", format=".0f")]
+        color=alt.Color(
+            "semaine:N",
+            title="Semaine",
+            sort=ORDER_DOMAIN,
+            scale=alt.Scale(domain=line_domain, range=line_range),
+        ),
+        tooltip=["semaine", "jour", alt.Tooltip("qte:Q", format=".0f")],
     ).properties(height=320)
     st.altair_chart(ch1, use_container_width=True)
 
-    st.markdown("### 📈 Évolution du CA TTC — 3 dernières semaines + Moyenne")
+    st.markdown(
+        """
+        <h3 style="color:#585857;font-weight:900;">
+            📈 Évolution du CA TTC — 3 dernières semaines + Moyenne
+        </h3>
+        """,
+        unsafe_allow_html=True,
+    )
     ch2 = alt.Chart(plot_df).mark_line(point=True).encode(
         x=alt.X("jour:N", sort=JOURS, title="Jour de la semaine"),
         y=alt.Y("ca:Q", title="CA TTC"),
-        color=alt.Color("semaine:N", title="Semaine", sort=ORDER_DOMAIN),
-        strokeDash=alt.condition(alt.datum.semaine == MOY_LABEL, alt.value([5, 5]), alt.value([1, 0])),
-        tooltip=["semaine", "jour", alt.Tooltip("ca:Q", format=".2f")]
+        color=alt.Color(
+            "semaine:N",
+            title="Semaine",
+            sort=ORDER_DOMAIN,
+            scale=alt.Scale(domain=line_domain, range=line_range),
+        ),
+        tooltip=["semaine", "jour", alt.Tooltip("ca:Q", format=".2f")],
     ).properties(height=320)
     st.altair_chart(ch2, use_container_width=True)
 
-    st.markdown("### 📈 Évolution du Prix moyen d'article — 3 dernières semaines + Moyenne")
+    st.markdown(
+        """
+        <h3 style="color:#585857;font-weight:900;">
+            📈 Évolution du Prix moyen d'article — 3 dernières semaines + Moyenne
+        </h3>
+        """,
+        unsafe_allow_html=True,
+    )
     ch3 = alt.Chart(plot_df).mark_line(point=True).encode(
         x=alt.X("jour:N", sort=JOURS, title="Jour de la semaine"),
         y=alt.Y("prix_moy:Q", title="Prix moyen d'article (€)"),
-        color=alt.Color("semaine:N", title="Semaine", sort=ORDER_DOMAIN),
-        strokeDash=alt.condition(alt.datum.semaine == MOY_LABEL, alt.value([5, 5]), alt.value([1, 0])),
-        tooltip=["semaine", "jour", alt.Tooltip("prix_moy:Q", format=".2f")]
+        color=alt.Color(
+            "semaine:N",
+            title="Semaine",
+            sort=ORDER_DOMAIN,
+            scale=alt.Scale(domain=line_domain, range=line_range),
+        ),
+        tooltip=["semaine", "jour", alt.Tooltip("prix_moy:Q", format=".2f")],
     ).properties(height=320)
     st.altair_chart(ch3, use_container_width=True)
 
@@ -738,15 +1070,35 @@ else:
 # 6) Détail lignes
 # =============================================================================
 st.divider()
-st.markdown("### 🧾 Détail des lignes (période sélectionnée)")
+st.markdown(
+    """
+    <h3 style="color:#585857;font-weight:900;">
+        🧾 Détail des lignes (période sélectionnée)
+    </h3>
+    """,
+    unsafe_allow_html=True,
+)
 
 show_cols = [
-    "store_name", "period_date", "code_article", "libelle_final", "famille_finale",
-    "qte", "ventes_ht", "ventes_ttc", "marge_ht", "marge_pct",
-    "iso_year", "iso_week", "iso_key", "iso_label"
+    "store_name",
+    "period_date",
+    "code_article",
+    "libelle_final",
+    "famille_finale",
+    "qte",
+    "ventes_ht",
+    "ventes_ttc",
+    "marge_ht",
+    "marge_pct",
+    "iso_year",
+    "iso_week",
+    "iso_key",
+    "iso_label",
 ]
+
 present = [c for c in show_cols if c in df.columns]
+
 st.dataframe(
     df[present].sort_values(["period_date", "store_name"]).head(5000),
-    use_container_width=True
+    use_container_width=True,
 )
