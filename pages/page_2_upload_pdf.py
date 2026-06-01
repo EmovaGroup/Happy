@@ -18,11 +18,11 @@ supabase = get_supabase()
 
 st.markdown("## 📄 Déposer un PDF (classé par magasin /date)")
 
-@st.cache_data(ttl=3600)
+@st.cache_data(ttl=3600, show_spinner="⏳ Chargement des magasins...")
 def load_store_names() -> list[str]:
-    supabase = get_supabase()
     table = (
-        supabase.table("v_matrix")
+        get_supabase()
+        .table("v_matrix")
         .select("store_name")
         .neq("store_name", "")
         .order("store_name", desc=False)
@@ -105,21 +105,31 @@ if st.button("⬆️ Uploader le PDF", key="btn_upload_pdf", type="primary"):
         st.error("❌ Date invalide. Mets exactement 6 chiffres au format YYMMDD (ex: 260219).")
         st.stop()
 
-    try:
-        object_path = build_object_path(store_selected, date_code)
+    with st.spinner("⏳ Upload en cours..."):
+        try:
+            object_path = build_object_path(store_selected, date_code)
+            uploader_email = st.session_state.get("sb_user", {}).get("email", "inconnu")
 
-        pdf_bytes = uploaded.getvalue()
+            supabase.storage.from_("ventes").upload(
+                path=object_path,
+                file=uploaded.getvalue(),
+                file_options={
+                    "content-type": "application/pdf",
+                    "upsert": "true",
+                },
+            )
 
-        supabase.storage.from_("ventes").upload(
-            path=object_path,
-            file=pdf_bytes,
-            file_options={
-                "content-type": "application/pdf",
-                "upsert": "true",
-            },
-        )
+            try:
+                supabase.table("upload_logs").insert({
+                    "uploader": uploader_email,
+                    "store_name": store_selected,
+                    "file_path": object_path,
+                    "file_type": "pdf",
+                }).execute()
+            except Exception:
+                pass
 
-        st.success(f"✅ Upload réussi : {object_path}")
+            st.success(f"✅ Upload réussi par **{uploader_email}** : `{object_path}`")
 
-    except Exception as e:
-        st.error(f"❌ Upload impossible : {e}")
+        except Exception as e:
+            st.error(f"❌ Upload impossible : {e}")

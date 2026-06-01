@@ -4,3 +4,5 @@ altair
 supabase
 python-dotenv
 requests
+openpyxl
+fpdf2
