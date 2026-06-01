@@ -1,13 +1,8 @@
 # src/ui.py
-import base64
 import re
-from pathlib import Path
 import streamlit as st
 from .auth import logout
-
-_PROJECT_ROOT = Path(__file__).resolve().parents[1]
-_ASSETS_DIR = _PROJECT_ROOT / "assets"
-_LOGO_FILENAME = "logo_emova_group.png"
+from .utils import logo_data_uri, inject_base_css
 
 
 def _extract_lastname_from_email(email: str | None) -> str:
@@ -22,30 +17,11 @@ def _extract_lastname_from_email(email: str | None) -> str:
     return candidate.upper() if candidate else "!"
 
 
-@st.cache_data(ttl=3600)
-def _logo_data_uri() -> str | None:
-    p = _ASSETS_DIR / _LOGO_FILENAME
-    if not p.exists():
-        return None
-    data = p.read_bytes()
-    b64 = base64.b64encode(data).decode("ascii")
-    ext = p.suffix.lower().lstrip(".") or "png"
-    return f"data:image/{ext};base64,{b64}"
-
-
 def _inject_topbar_css():
+    inject_base_css()
     st.markdown(
         """
 <style>
-:root{
-  --emova-green: #95d1bd;
-  --emova-green-dark: #7fbda8;
-  --emova-dark: #585857;
-  --emova-light: #d1d3d4;
-  --emova-white: #ffffff;
-  --emova-soft: #edf7f3;
-}
-
 /* ============================================================================
 TOPBAR
 ============================================================================ */
@@ -286,7 +262,7 @@ def top_bar(title: str):
     user = st.session_state.get("sb_user", {})
     email = user.get("email", "")
     lastname = _extract_lastname_from_email(email)
-    logo_uri = _logo_data_uri()
+    logo_uri = logo_data_uri()
 
     left, right = st.columns([6, 2], vertical_alignment="center")
 
@@ -327,15 +303,15 @@ def top_bar(title: str):
     st.title(title)
 
 
-def tabs_nav(active: str = "matrix"):
-    c1, c2 = st.columns(2, gap="large")
+def tabs_nav(active: str = "nvsn1"):
+    c1, c2, c3 = st.columns(3, gap="large")
 
     with c1:
         if st.button(
-            "📊 Happy",
-            key="nav_matrix_btn",
+            "📈 N vs N-1",
+            key="nav_nvsn1_btn",
             use_container_width=True,
-            type="primary" if active == "matrix" else "secondary",
+            type="primary" if active == "nvsn1" else "secondary",
         ):
             st.switch_page("pages/page_1.py")
 
@@ -347,3 +323,12 @@ def tabs_nav(active: str = "matrix"):
             type="primary" if active == "upload" else "secondary",
         ):
             st.switch_page("pages/page_2_upload_pdf.py")
+
+    with c3:
+        if st.button(
+            "📦 Référentiel",
+            key="nav_referentiel_btn",
+            use_container_width=True,
+            type="primary" if active == "referentiel" else "secondary",
+        ):
+            st.switch_page("pages/page_3_referentiel.py")
