@@ -570,9 +570,12 @@ with _kpi_t2:
     _bqte = df_budget["budget_qte_article"].sum() if not df_budget.empty else 0
     _rca  = df_budget["ca_ttc"].sum()             if not df_budget.empty else 0
     _rqte = df_budget["qte"].sum()                if not df_budget.empty else 0
-    row1b = st.columns(2)
-    with row1b[0]: kpi_card_budget("💰 CA TTC vs Budget",    _rca,  _bca,  "eur")
-    with row1b[1]: kpi_card_budget("🧾 Quantités vs Budget", _rqte, _bqte, "qte")
+    _prix_r = _rca  / _rqte if _rqte else 0
+    _prix_b = _bca  / _bqte if _bqte else 0
+    row1b = st.columns(3)
+    with row1b[0]: kpi_card_budget("💰 CA TTC vs Budget",        _rca,   _bca,   "eur")
+    with row1b[1]: kpi_card_budget("🧾 Quantités vs Budget",     _rqte,  _bqte,  "qte")
+    with row1b[2]: kpi_card_budget("🏷️ Prix art. moy. vs Budget", _prix_r, _prix_b, "eur_unit")
 
 st.divider()
 
