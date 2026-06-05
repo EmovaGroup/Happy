@@ -304,7 +304,7 @@ def top_bar(title: str):
 
 
 def tabs_nav(active: str = "nvsn1"):
-    c1, c2, c3 = st.columns(3, gap="large")
+    c1, c2, c3, c4 = st.columns(4, gap="large")
 
     with c1:
         if st.button(
@@ -332,3 +332,12 @@ def tabs_nav(active: str = "nvsn1"):
             type="primary" if active == "referentiel" else "secondary",
         ):
             st.switch_page("pages/page_3_referentiel.py")
+
+    with c4:
+        if st.button(
+            "💰 Upload Budget",
+            key="nav_budget_btn",
+            use_container_width=True,
+            type="primary" if active == "budget" else "secondary",
+        ):
+            st.switch_page("pages/page_4_budget_upload.py")
