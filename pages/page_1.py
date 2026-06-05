@@ -1108,7 +1108,17 @@ with tab_rayon:
 
 # ─── TAB 3 : TOP ARTICLES ────────────────────────────────────────────────────
 with tab_article:
-    top_n = st.slider("Nombre d'articles à afficher", 10, 100, 30, 10, key="top_n_nvsn1")
+    _art_ctrl1, _art_ctrl2 = st.columns([3, 2])
+    with _art_ctrl1:
+        top_n = st.slider("Nombre d'articles à afficher", 10, 100, 30, 10, key="top_n_nvsn1")
+    with _art_ctrl2:
+        _art_sort = st.radio(
+            "Trier par",
+            ["CA TTC N ↓", "CA TTC N-1 ↓"],
+            horizontal=True,
+            key="art_sort_nvsn1",
+        )
+    _sort_col = "ttc_n" if _art_sort == "CA TTC N ↓" else "ttc_n1"
 
     def agg_article(df):
         if df.empty:
@@ -1124,7 +1134,7 @@ with tab_article:
     art_df = (
         pd.merge(an, an1, on="libelle_final", how="outer")
         .fillna(0)
-        .sort_values("ttc_n", ascending=False)
+        .sort_values(_sort_col, ascending=False)
         .head(top_n)
     )
 
