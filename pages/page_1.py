@@ -76,6 +76,7 @@ def inject_page_css():
 .pill-up   { background:rgba(46,204,113,.18); }
 .pill-down { background:rgba(231,76,60,.18); }
 .pill-flat { background:rgba(127,127,127,.10); }
+.pill-new  { background:rgba(46,204,113,.30); color:#1a7a4a; font-weight:900; }
 .sep-col{ border-left:2px solid var(--emova-green) !important; }
 .kpi-card{
   border-radius:14px;padding:14px 16px;
@@ -241,7 +242,11 @@ def fmt_pct_val(x):
 
 
 def evol_pill(n_val, n1_val):
-    if n_val is None or n1_val is None or pd.isna(n_val) or pd.isna(n1_val) or n1_val == 0:
+    if n_val is None or n1_val is None or pd.isna(n_val) or pd.isna(n1_val):
+        return '<span class="pill pill-flat">—</span>'
+    if n1_val == 0:
+        if n_val and n_val != 0:
+            return '<span class="pill pill-new">🆕 Nouveau</span>'
         return '<span class="pill pill-flat">—</span>'
     pct = (n_val - n1_val) / abs(n1_val) * 100
     if pct > 0:
