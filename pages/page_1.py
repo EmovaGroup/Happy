@@ -504,17 +504,20 @@ def kpi_card(label, vn, vn1, fmt):
     )
 
 def kpi_card_budget(label, valeur, budget, fmt):
-    pct = (valeur / budget * 100) if budget else None
+    if budget and budget != 0:
+        pct = (valeur - budget) / abs(budget) * 100
+    else:
+        pct = None
     val_str = fmt_kpi(valeur, fmt)
     bud_str = fmt_kpi(budget, fmt)
     if pct is None:
         card_cls, pill_cls, pct_str = "kpi-card-flat", "kpi-pill-flat", "—"
-    elif pct >= 100:
-        card_cls, pill_cls, pct_str = "kpi-card-up",   "kpi-pill-up",   f"{pct:.1f}%"
-    elif pct >= 80:
-        card_cls, pill_cls, pct_str = "kpi-card-flat", "kpi-pill-flat", f"{pct:.1f}%"
+    elif pct > 0:
+        card_cls, pill_cls, pct_str = "kpi-card-up",   "kpi-pill-up",   f"▲ +{pct:.1f}%"
+    elif pct < 0:
+        card_cls, pill_cls, pct_str = "kpi-card-down", "kpi-pill-down", f"▼ {pct:.1f}%"
     else:
-        card_cls, pill_cls, pct_str = "kpi-card-down", "kpi-pill-down", f"{pct:.1f}%"
+        card_cls, pill_cls, pct_str = "kpi-card-flat", "kpi-pill-flat", "= 0,0%"
     st.markdown(
         f"""
         <div class="kpi-card {card_cls}">
@@ -546,16 +549,13 @@ with _kpi_t1:
     with row2[2]: kpi_card("🔥 Taux commission",       commission_pct_tot(df_n), commission_pct_tot(df_n1), "pct")
 
 with _kpi_t2:
-    _bca  = df_budget["budget_ca"].sum()           if not df_budget.empty else 0
-    _bqte = df_budget["budget_qte_article"].sum()  if not df_budget.empty else 0
-    _rca  = df_budget["ca_ttc"].sum()              if not df_budget.empty else 0
-    _rht  = df_budget["ca_ht"].sum()               if not df_budget.empty else 0
-    _rqte = df_budget["qte"].sum()                 if not df_budget.empty else 0
-    row1b = st.columns(3)
+    _bca  = df_budget["budget_ca"].sum()          if not df_budget.empty else 0
+    _bqte = df_budget["budget_qte_article"].sum() if not df_budget.empty else 0
+    _rca  = df_budget["ca_ttc"].sum()             if not df_budget.empty else 0
+    _rqte = df_budget["qte"].sum()                if not df_budget.empty else 0
+    row1b = st.columns(2)
     with row1b[0]: kpi_card_budget("💰 CA TTC vs Budget",    _rca,  _bca,  "eur")
     with row1b[1]: kpi_card_budget("🧾 Quantités vs Budget", _rqte, _bqte, "qte")
-    with row1b[2]: kpi_card_budget("📊 CA HT vs Budget",     _rht,
-                                   df_budget["ca_ht_n1"].sum() if not df_budget.empty else 0, "eur")
 
 st.divider()
 
@@ -733,7 +733,7 @@ chart_df = pd.concat([p for p in _parts if not p.empty], ignore_index=True)
 
 if not chart_df.empty:
     _domain  = [_serie_n, _serie_n1, _serie_bud]
-    _range_c = ["#95d1bd", "#585857", "#c0392b"]
+    _range_c = ["#95d1bd", "#585857", "#d1d3d4"]
     _chart_type = st.radio(
         "Type de graphique",
         ["📈 Courbes", "📊 Histogramme"],
@@ -827,27 +827,33 @@ with tab_jour:
             return f'<span class="pill pill-down">▼ {pct:.1f}%</span>'
         return '<span class="pill pill-flat">= 0,0%</span>'
 
+    def _pm(ttc, qte):
+        try:
+            q = float(qte)
+            return float(ttc) / q if q != 0 else None
+        except (TypeError, ValueError):
+            return None
+
     COMBINED_THEAD = """
     <thead><tr>
       <th class="sticky-left">Période</th>
-      <th>Date N</th><th>Date N-1</th>
-      <th>CA TTC N</th><th>Budget CA</th><th>% Budget CA</th>
-      <th class="sep-col">CA TTC N-1*</th><th>% N-1</th>
-      <th class="sep-col">Qté N</th><th>Budget Qté</th><th>% Budget Qté</th>
-      <th>Qté N-1*</th><th>% Qté N-1</th>
-      <th class="sep-col">Com. N</th><th>Com. N-1*</th><th>% Com.</th>
+      <th>Date N</th><th>CA TTC N</th><th>Qté N</th><th>Com. N</th><th>Prix moy. N</th>
+      <th class="sep-col">Date N-1*</th><th>CA TTC N-1</th><th>Δ CA</th><th>Qté N-1</th><th>Δ Qté</th><th>Com. N-1</th><th>Δ Com.</th><th>Prix moy. N-1</th>
+      <th class="sep-col">Budget CA</th><th>Δ Bud CA</th><th>Budget Qté</th><th>Δ Bud Qté</th>
     </tr></thead>"""
 
-    def combined_row(label, date_n, date_n1, ttc_n, bca, ttc_n1, qte_n, bqte, qte_n1, com_n, com_n1, cls=""):
+    def combined_row(label, date_n, date_n1, ttc_n, qte_n, com_n, prix_n, ttc_n1, qte_n1, com_n1, prix_n1, bca, bqte, cls=""):
+        pm_n  = fmt_kpi(prix_n,  "eur_unit") if prix_n  is not None else "—"
+        pm_n1 = fmt_kpi(prix_n1, "eur_unit") if prix_n1 is not None else "—"
         return f"""
         <tr class="{cls}">
           <td class="sticky-left">{label}</td>
-          <td>{date_n}</td><td>{date_n1}</td>
-          <td>{fmt_eur(ttc_n)}</td><td>{fmt_eur(bca)}</td><td>{_bud_evol_pill(ttc_n, bca)}</td>
-          <td class="sep-col">{fmt_eur(ttc_n1)}</td><td>{evol_pill(ttc_n, ttc_n1)}</td>
-          <td class="sep-col">{fmt_qte(qte_n)}</td><td>{fmt_qte(bqte)}</td><td>{_bud_evol_pill(qte_n, bqte)}</td>
+          <td>{date_n}</td><td>{fmt_eur(ttc_n)}</td><td>{fmt_qte(qte_n)}</td><td>{fmt_eur(com_n)}</td><td>{pm_n}</td>
+          <td class="sep-col">{date_n1}</td><td>{fmt_eur(ttc_n1)}</td><td>{evol_pill(ttc_n, ttc_n1)}</td>
           <td>{fmt_qte(qte_n1)}</td><td>{evol_pill(qte_n, qte_n1)}</td>
-          <td class="sep-col">{fmt_eur(com_n)}</td><td>{fmt_eur(com_n1)}</td><td>{evol_pill(com_n, com_n1)}</td>
+          <td>{fmt_eur(com_n1)}</td><td>{evol_pill(com_n, com_n1)}</td><td>{pm_n1}</td>
+          <td class="sep-col">{fmt_eur(bca)}</td><td>{_bud_evol_pill(ttc_n, bca)}</td>
+          <td>{fmt_qte(bqte)}</td><td>{_bud_evol_pill(qte_n, bqte)}</td>
         </tr>"""
 
     tbody = "<tbody>"
@@ -893,26 +899,34 @@ with tab_jour:
         merged = merged.fillna(0)
 
         for (yr, wk), wdf in merged.groupby(["iso_year","iso_week"], sort=True):
-            tbody += combined_row(f"S{int(wk)}", "—", "—",
-                wdf["ttc_n"].sum(), wdf["budget_ca"].sum(), wdf["ttc_n1"].sum(),
-                wdf["qte_n"].sum(), wdf["budget_qte_article"].sum(), wdf["qte_n1"].sum(),
-                wdf["com_n"].sum(), wdf["com_n1"].sum(), cls="tr-week")
+            tbody += combined_row(
+                f"S{int(wk)}", "—", "—",
+                wdf["ttc_n"].sum(), wdf["qte_n"].sum(), wdf["com_n"].sum(),
+                _pm(wdf["ttc_n"].sum(), wdf["qte_n"].sum()),
+                wdf["ttc_n1"].sum(), wdf["qte_n1"].sum(), wdf["com_n1"].sum(),
+                _pm(wdf["ttc_n1"].sum(), wdf["qte_n1"].sum()),
+                wdf["budget_ca"].sum(), wdf["budget_qte_article"].sum(), cls="tr-week")
             for _, row in wdf.iterrows():
                 dn_str  = row["date_n"].strftime("%d/%m/%Y") if pd.notna(row["date_n"]) else "—"
                 dn1_str = (row["date_n"] - timedelta(days=364)).strftime("%d/%m/%Y") if pd.notna(row["date_n"]) else "—"
                 tbody += combined_row(
                     row["jour_abr"], dn_str, dn1_str,
-                    row["ttc_n"], row["budget_ca"], row["ttc_n1"],
-                    row["qte_n"], row["budget_qte_article"], row["qte_n1"],
-                    row["com_n"], row["com_n1"])
-        tbody += combined_row("TOTAL", "—", "—",
-            merged["ttc_n"].sum(), merged["budget_ca"].sum(), merged["ttc_n1"].sum(),
-            merged["qte_n"].sum(), merged["budget_qte_article"].sum(), merged["qte_n1"].sum(),
-            merged["com_n"].sum(), merged["com_n1"].sum(), cls="tr-total")
-        df_export = merged[["jour_abr","date_n","ttc_n","ht_n","qte_n","com_n",
-                             "budget_ca","budget_qte_article","ttc_n1","qte_n1","com_n1"]].copy()
-        df_export.columns = ["Jour","Date N","CA TTC N","CA HT N","Qté N","Commission N",
-                              "Budget CA","Budget Qté","CA TTC N-1 comp.","Qté N-1 comp.","Com. N-1 comp."]
+                    row["ttc_n"], row["qte_n"], row["com_n"],
+                    _pm(row["ttc_n"], row["qte_n"]),
+                    row["ttc_n1"], row["qte_n1"], row["com_n1"],
+                    _pm(row["ttc_n1"], row["qte_n1"]),
+                    row["budget_ca"], row["budget_qte_article"])
+        tbody += combined_row(
+            "TOTAL", "—", "—",
+            merged["ttc_n"].sum(), merged["qte_n"].sum(), merged["com_n"].sum(),
+            _pm(merged["ttc_n"].sum(), merged["qte_n"].sum()),
+            merged["ttc_n1"].sum(), merged["qte_n1"].sum(), merged["com_n1"].sum(),
+            _pm(merged["ttc_n1"].sum(), merged["qte_n1"].sum()),
+            merged["budget_ca"].sum(), merged["budget_qte_article"].sum(), cls="tr-total")
+        df_export = merged[["jour_abr","date_n","ttc_n","qte_n","com_n",
+                             "ttc_n1","qte_n1","com_n1","budget_ca","budget_qte_article"]].copy()
+        df_export.columns = ["Jour","Date N","CA TTC N","Qté N","Commission N",
+                              "CA TTC N-1 comp.","Qté N-1 comp.","Com. N-1 comp.","Budget CA","Budget Qté"]
 
     elif gran == "Semaine":
         dfn_s  = df_n.copy()
@@ -944,17 +958,22 @@ with tab_jour:
             tbody += combined_row(
                 f"S{int(row['iso_week'])} — {int(row['iso_year'])}",
                 "—", f"S{int(row['iso_week'])} {year_n1_label}",
-                row["ttc_n"], row["budget_ca"], row["ttc_n1"],
-                row["qte_n"], row["budget_qte_article"], row["qte_n1"],
-                row["com_n"], row["com_n1"])
-        tbody += combined_row("TOTAL", "—", "—",
-            ws["ttc_n"].sum(), ws["budget_ca"].sum(), ws["ttc_n1"].sum(),
-            ws["qte_n"].sum(), ws["budget_qte_article"].sum(), ws["qte_n1"].sum(),
-            ws["com_n"].sum(), ws["com_n1"].sum(), cls="tr-total")
-        df_export = ws[["iso_year","iso_week","ttc_n","ht_n","qte_n","com_n",
-                         "budget_ca","budget_qte_article","ttc_n1","qte_n1","com_n1"]].copy()
-        df_export.columns = ["Année","Semaine","CA TTC N","CA HT N","Qté N","Commission N",
-                              "Budget CA","Budget Qté","CA TTC N-1 comp.","Qté N-1 comp.","Com. N-1 comp."]
+                row["ttc_n"], row["qte_n"], row["com_n"],
+                _pm(row["ttc_n"], row["qte_n"]),
+                row["ttc_n1"], row["qte_n1"], row["com_n1"],
+                _pm(row["ttc_n1"], row["qte_n1"]),
+                row["budget_ca"], row["budget_qte_article"])
+        tbody += combined_row(
+            "TOTAL", "—", "—",
+            ws["ttc_n"].sum(), ws["qte_n"].sum(), ws["com_n"].sum(),
+            _pm(ws["ttc_n"].sum(), ws["qte_n"].sum()),
+            ws["ttc_n1"].sum(), ws["qte_n1"].sum(), ws["com_n1"].sum(),
+            _pm(ws["ttc_n1"].sum(), ws["qte_n1"].sum()),
+            ws["budget_ca"].sum(), ws["budget_qte_article"].sum(), cls="tr-total")
+        df_export = ws[["iso_year","iso_week","ttc_n","qte_n","com_n",
+                         "ttc_n1","qte_n1","com_n1","budget_ca","budget_qte_article"]].copy()
+        df_export.columns = ["Année","Semaine","CA TTC N","Qté N","Commission N",
+                              "CA TTC N-1 comp.","Qté N-1 comp.","Com. N-1 comp.","Budget CA","Budget Qté"]
 
     else:  # Mois
         MOIS_FR = {1:"Janvier",2:"Février",3:"Mars",4:"Avril",5:"Mai",6:"Juin",
@@ -987,17 +1006,22 @@ with tab_jour:
             tbody += combined_row(
                 f"{MOIS_FR.get(int(row['month']),'')} {int(row['year'])}",
                 "—", f"{MOIS_FR.get(int(row['month']),'?')} {year_n1_label}",
-                row["ttc_n"], row["budget_ca"], row["ttc_n1"],
-                row["qte_n"], row["budget_qte_article"], row["qte_n1"],
-                row["com_n"], row["com_n1"])
-        tbody += combined_row("TOTAL", "—", "—",
-            ms["ttc_n"].sum(), ms["budget_ca"].sum(), ms["ttc_n1"].sum(),
-            ms["qte_n"].sum(), ms["budget_qte_article"].sum(), ms["qte_n1"].sum(),
-            ms["com_n"].sum(), ms["com_n1"].sum(), cls="tr-total")
-        df_export = ms[["year","month","ttc_n","ht_n","qte_n","com_n",
-                         "budget_ca","budget_qte_article","ttc_n1","qte_n1","com_n1"]].copy()
-        df_export.columns = ["Année","Mois","CA TTC N","CA HT N","Qté N","Commission N",
-                              "Budget CA","Budget Qté","CA TTC N-1 comp.","Qté N-1 comp.","Com. N-1 comp."]
+                row["ttc_n"], row["qte_n"], row["com_n"],
+                _pm(row["ttc_n"], row["qte_n"]),
+                row["ttc_n1"], row["qte_n1"], row["com_n1"],
+                _pm(row["ttc_n1"], row["qte_n1"]),
+                row["budget_ca"], row["budget_qte_article"])
+        tbody += combined_row(
+            "TOTAL", "—", "—",
+            ms["ttc_n"].sum(), ms["qte_n"].sum(), ms["com_n"].sum(),
+            _pm(ms["ttc_n"].sum(), ms["qte_n"].sum()),
+            ms["ttc_n1"].sum(), ms["qte_n1"].sum(), ms["com_n1"].sum(),
+            _pm(ms["ttc_n1"].sum(), ms["qte_n1"].sum()),
+            ms["budget_ca"].sum(), ms["budget_qte_article"].sum(), cls="tr-total")
+        df_export = ms[["year","month","ttc_n","qte_n","com_n",
+                         "ttc_n1","qte_n1","com_n1","budget_ca","budget_qte_article"]].copy()
+        df_export.columns = ["Année","Mois","CA TTC N","Qté N","Commission N",
+                              "CA TTC N-1 comp.","Qté N-1 comp.","Com. N-1 comp.","Budget CA","Budget Qté"]
 
     tbody += "</tbody>"
     st.caption("* N-1 à jours comparables")
