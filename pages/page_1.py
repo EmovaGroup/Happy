@@ -13,7 +13,7 @@ from src.utils import inject_base_css
 
 st.set_page_config(page_title="N vs N-1", layout="wide")
 require_auth()
-top_bar("Comparaison N vs N-1")
+top_bar("Journalisation")
 tabs_nav(active="nvsn1")
 st.divider()
 
