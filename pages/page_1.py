@@ -246,7 +246,7 @@ def evol_pill(n_val, n1_val):
         return '<span class="pill pill-flat">—</span>'
     if n1_val == 0:
         if n_val and n_val != 0:
-            return '<span class="pill pill-new">🆕 Nouveau</span>'
+            return '<span class="pill pill-new">🆕 New</span>'
         return '<span class="pill pill-flat">—</span>'
     pct = (n_val - n1_val) / abs(n1_val) * 100
     if pct > 0:
