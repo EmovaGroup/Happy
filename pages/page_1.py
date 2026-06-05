@@ -293,7 +293,9 @@ for _r in codes_data:
 
 # code_magasin -> store_name_pdf  (jointure via nom_ville)
 _code_to_store = {c: _ville_to_store[v] for c, v in _code_to_ville.items() if v in _ville_to_store}
-_store_codes   = sorted(_code_to_ville.keys())   # afficher tous les codes même sans mapping store
+_store_codes   = sorted(_code_to_ville.keys())
+_store_labels  = [f"{c} – {_code_to_ville[c]}" for c in _store_codes]
+_label_to_code = {f"{c} – {_code_to_ville[c]}": c for c in _store_codes}
 
 # =============================================================================
 # Load data
@@ -414,13 +416,14 @@ with col_f2:
             st.session_state["gran_nvsn1"] = "Mois"
 with col_f3:
     st.markdown("**🏬 Code magasin**")
-    selected_codes = st.multiselect(
+    selected_labels = st.multiselect(
         "",
-        ["Tous les magasins"] + _store_codes,
+        ["Tous les magasins"] + _store_labels,
         default=["Tous les magasins"],
         label_visibility="collapsed",
         key="stores_nvsn1",
     )
+    selected_codes = [_label_to_code[l] for l in selected_labels if l in _label_to_code]
 
 if isinstance(drange, tuple) and len(drange) == 2:
     dstart_n, dend_n = drange
@@ -437,7 +440,7 @@ st.caption(
 
 # ── Bouton chargement ─────────────────────────────────────────────────────────
 if st.button("⚡ Charger / Actualiser", key="btn_nvsn1", type="primary", use_container_width=True):
-    if selected_codes and "Tous les magasins" not in selected_codes:
+    if selected_codes and "Tous les magasins" not in selected_labels:
         _selected_stores = [_code_to_store[c] for c in selected_codes if c in _code_to_store]
         _nom_villes      = tuple(_code_to_ville[c] for c in selected_codes if c in _code_to_ville)
     else:
@@ -753,7 +756,7 @@ chart_df = pd.concat([p for p in _parts if not p.empty], ignore_index=True)
 
 if not chart_df.empty:
     _domain  = [_serie_n, _serie_n1, _serie_bud]
-    _range_c = ["#95d1bd", "#585857", "#d1d3d4"]
+    _range_c = ["#95d1bd", "#d1d3d4", "#585857"]
     _chart_type = st.radio(
         "Type de graphique",
         ["📈 Courbes", "📊 Histogramme"],
