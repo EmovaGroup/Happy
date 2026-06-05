@@ -265,18 +265,35 @@ def load_filters():
     supabase = get_supabase()
     r1 = supabase.table("v_matrix").select("period_date").order("period_date", desc=False).limit(1).execute()
     r2 = supabase.table("v_matrix").select("period_date").order("period_date", desc=True).limit(1).execute()
-    res_mag = supabase.table("magasins").select("store_name_pdf,code_magasin,nom_ville").execute()
+    # store_name_pdf <-> nom_ville
+    res_mag = supabase.table("magasins").select("store_name_pdf,nom_ville").execute()
+    # code_magasin vient de la vue budget (deduplique en Python)
+    res_codes = (supabase.table("v_budget_vs_ca_jour")
+                 .select("code_magasin,nom_ville")
+                 .order("code_magasin")
+                 .limit(500)
+                 .execute())
     dmin = pd.to_datetime(r1.data[0]["period_date"]).date() if r1.data else date.today()
     dmax = pd.to_datetime(r2.data[0]["period_date"]).date() if r2.data else date.today()
-    return dmin, dmax, res_mag.data or []
+    return dmin, dmax, res_mag.data or [], res_codes.data or []
 
 
-dmin, dmax, stores_data = load_filters()
-_code_to_store = {r["code_magasin"]: r["store_name_pdf"] for r in stores_data
-                  if r.get("code_magasin") and r.get("store_name_pdf")}
-_code_to_ville = {r["code_magasin"]: r["nom_ville"] for r in stores_data
-                  if r.get("code_magasin") and r.get("nom_ville")}
-_store_codes   = sorted(_code_to_store.keys())
+dmin, dmax, stores_data, codes_data = load_filters()
+
+# nom_ville -> store_name_pdf (depuis magasins)
+_ville_to_store = {r["nom_ville"]: r["store_name_pdf"]
+                   for r in stores_data if r.get("nom_ville") and r.get("store_name_pdf")}
+
+# code_magasin -> nom_ville  (deduplique depuis v_budget)
+_code_to_ville: dict = {}
+for _r in codes_data:
+    _c, _v = _r.get("code_magasin"), _r.get("nom_ville")
+    if _c and _v and _c not in _code_to_ville:
+        _code_to_ville[_c] = _v
+
+# code_magasin -> store_name_pdf  (jointure via nom_ville)
+_code_to_store = {c: _ville_to_store[v] for c, v in _code_to_ville.items() if v in _ville_to_store}
+_store_codes   = sorted(_code_to_ville.keys())   # afficher tous les codes même sans mapping store
 
 # =============================================================================
 # Load data
