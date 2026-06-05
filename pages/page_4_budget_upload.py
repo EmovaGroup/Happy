@@ -76,6 +76,30 @@ st.info(f"📍 Magasin sélectionné : **{selected_label}**")
 
 st.divider()
 
+# ── Modèle à télécharger ───────────────────────────────────────────────────────
+st.markdown("## 📥 Télécharger le modèle de budget")
+
+@st.cache_data(ttl=3600, show_spinner=False)
+def fetch_template() -> bytes | None:
+    try:
+        return get_supabase().storage.from_("budget").download("budget_0.csv")
+    except Exception:
+        return None
+
+_template_bytes = fetch_template()
+if _template_bytes:
+    st.download_button(
+        label="⬇️ Télécharger le modèle CSV (budget_0.csv)",
+        data=_template_bytes,
+        file_name="budget_0.csv",
+        mime="text/csv",
+        key="btn_dl_template",
+    )
+else:
+    st.warning("Modèle introuvable dans le bucket (budget/budget_0.csv).")
+
+st.divider()
+
 # ── Upload du fichier ──────────────────────────────────────────────────────────
 st.markdown("## 📂 Fichier budget (Excel / CSV)")
 
