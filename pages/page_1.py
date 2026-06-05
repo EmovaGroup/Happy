@@ -752,7 +752,7 @@ chart_df = pd.concat([p for p in _parts if not p.empty], ignore_index=True)
 
 if not chart_df.empty:
     _domain  = [_serie_n, _serie_n1, _serie_bud]
-    _range_c = ["#95d1bd", "#585857", "#f5a623"]
+    _range_c = ["#95d1bd", "#585857", "#c0392b"]
     _chart_type = st.radio(
         "Type de graphique",
         ["📈 Courbes", "📊 Histogramme"],
@@ -836,34 +836,37 @@ tab_jour, tab_rayon, tab_article = st.tabs(["📅 Jour par Jour", "🌿 Par Rayo
 with tab_jour:
     gran = st.session_state.get("gran_nvsn1", "Jour")
 
-    def _pct_pill(reel, bud):
-        if not bud:
+    def _bud_evol_pill(reel, bud):
+        if not bud or pd.isna(bud) or bud == 0:
             return '<span class="pill pill-flat">—</span>'
-        p = reel / bud * 100
-        if p >= 100:
-            return f'<span class="pill pill-up">✅ {p:.1f}%</span>'
-        elif p >= 80:
-            return f'<span class="pill pill-flat">⚠️ {p:.1f}%</span>'
-        return f'<span class="pill pill-down">❌ {p:.1f}%</span>'
+        pct = (reel - bud) / abs(bud) * 100
+        if pct > 0:
+            return f'<span class="pill pill-up">▲ +{pct:.1f}%</span>'
+        elif pct < 0:
+            return f'<span class="pill pill-down">▼ {pct:.1f}%</span>'
+        return '<span class="pill pill-flat">= 0,0%</span>'
 
     COMBINED_THEAD = """
     <thead><tr>
       <th class="sticky-left">Période</th>
       <th>Date N</th>
-      <th>CA TTC N</th><th>CA HT N</th><th>Qté N</th><th>Commission N</th>
-      <th class="sep-col">Budget CA</th><th>% Budget</th>
-      <th class="sep-col">CA TTC N-1</th><th>% N-1</th>
+      <th>CA TTC N</th><th>Budget CA</th><th>% Budget CA</th>
+      <th class="sep-col">CA TTC N-1*</th><th>% N-1</th>
+      <th class="sep-col">Qté N</th><th>Budget Qté</th><th>% Budget Qté</th>
+      <th>Qté N-1*</th><th>% Qté N-1</th>
+      <th class="sep-col">Com. N</th><th>Com. N-1*</th><th>% Com.</th>
     </tr></thead>"""
 
-    def combined_row(label, date_n, ttc_n, ht_n, qte_n, com_n, bca, ttc_n1, cls=""):
+    def combined_row(label, date_n, ttc_n, bca, ttc_n1, qte_n, bqte, qte_n1, com_n, com_n1, cls=""):
         return f"""
         <tr class="{cls}">
           <td class="sticky-left">{label}</td>
           <td>{date_n}</td>
-          <td>{fmt_eur(ttc_n)}</td><td>{fmt_eur(ht_n)}</td>
-          <td>{fmt_qte(qte_n)}</td><td>{fmt_eur(com_n)}</td>
-          <td class="sep-col">{fmt_eur(bca)}</td><td>{_pct_pill(ttc_n, bca)}</td>
+          <td>{fmt_eur(ttc_n)}</td><td>{fmt_eur(bca)}</td><td>{_bud_evol_pill(ttc_n, bca)}</td>
           <td class="sep-col">{fmt_eur(ttc_n1)}</td><td>{evol_pill(ttc_n, ttc_n1)}</td>
+          <td class="sep-col">{fmt_qte(qte_n)}</td><td>{fmt_qte(bqte)}</td><td>{_bud_evol_pill(qte_n, bqte)}</td>
+          <td>{fmt_qte(qte_n1)}</td><td>{evol_pill(qte_n, qte_n1)}</td>
+          <td class="sep-col">{fmt_eur(com_n)}</td><td>{fmt_eur(com_n1)}</td><td>{evol_pill(com_n, com_n1)}</td>
         </tr>"""
 
     tbody = "<tbody>"
@@ -882,21 +885,24 @@ with tab_jour:
 
         bdf_day = pd.DataFrame()
         if not df_budget.empty:
-            bdf_day = df_budget.groupby("jour", as_index=False).agg(budget_ca=("budget_ca","sum"))
+            bdf_day = df_budget.groupby("jour", as_index=False).agg(
+                budget_ca=("budget_ca","sum"), budget_qte_article=("budget_qte_article","sum"))
             bdf_day = bdf_day.rename(columns={"jour":"date_n"})
             bdf_day["date_n"] = pd.to_datetime(bdf_day["date_n"])
 
+        # left join N-1 = à jours comparables (seuls les jours présents dans N)
         merged = pd.merge(
             dn_day.rename(columns={"period_date":"date_n","ventes_ttc":"ttc_n",
                                    "ventes_ht":"ht_n","qte":"qte_n","commission":"com_n"}),
-            dn1_day.rename(columns={"period_date":"date_n1","ventes_ttc":"ttc_n1"})[
-                ["date_n","ttc_n1"]],
-            on="date_n", how="outer",
+            dn1_day.rename(columns={"ventes_ttc":"ttc_n1","qte":"qte_n1","commission":"com_n1"})[
+                ["date_n","ttc_n1","qte_n1","com_n1"]],
+            on="date_n", how="left",
         )
         if not bdf_day.empty:
-            merged = pd.merge(merged, bdf_day[["date_n","budget_ca"]], on="date_n", how="left")
+            merged = pd.merge(merged, bdf_day[["date_n","budget_ca","budget_qte_article"]], on="date_n", how="left")
         else:
             merged["budget_ca"] = 0.0
+            merged["budget_qte_article"] = 0.0
         merged = merged.sort_values("date_n")
         merged["date_n"] = pd.to_datetime(merged["date_n"])
         iso = merged["date_n"].dt.isocalendar()
@@ -907,19 +913,24 @@ with tab_jour:
 
         for (yr, wk), wdf in merged.groupby(["iso_year","iso_week"], sort=True):
             tbody += combined_row(f"S{int(wk)}", "—",
-                wdf["ttc_n"].sum(), wdf["ht_n"].sum(), wdf["qte_n"].sum(), wdf["com_n"].sum(),
-                wdf["budget_ca"].sum(), wdf["ttc_n1"].sum(), cls="tr-week")
+                wdf["ttc_n"].sum(), wdf["budget_ca"].sum(), wdf["ttc_n1"].sum(),
+                wdf["qte_n"].sum(), wdf["budget_qte_article"].sum(), wdf["qte_n1"].sum(),
+                wdf["com_n"].sum(), wdf["com_n1"].sum(), cls="tr-week")
             for _, row in wdf.iterrows():
                 dn_str = row["date_n"].strftime("%d/%m/%Y") if pd.notna(row["date_n"]) else "—"
                 tbody += combined_row(
                     row["jour_abr"], dn_str,
-                    row["ttc_n"], row["ht_n"], row["qte_n"], row["com_n"],
-                    row["budget_ca"], row["ttc_n1"])
+                    row["ttc_n"], row["budget_ca"], row["ttc_n1"],
+                    row["qte_n"], row["budget_qte_article"], row["qte_n1"],
+                    row["com_n"], row["com_n1"])
         tbody += combined_row("TOTAL", "—",
-            merged["ttc_n"].sum(), merged["ht_n"].sum(), merged["qte_n"].sum(), merged["com_n"].sum(),
-            merged["budget_ca"].sum(), merged["ttc_n1"].sum(), cls="tr-total")
-        df_export = merged[["jour_abr","date_n","ttc_n","ht_n","qte_n","com_n","budget_ca","ttc_n1"]].copy()
-        df_export.columns = ["Jour","Date N","CA TTC N","CA HT N","Qté N","Commission N","Budget CA","CA TTC N-1"]
+            merged["ttc_n"].sum(), merged["budget_ca"].sum(), merged["ttc_n1"].sum(),
+            merged["qte_n"].sum(), merged["budget_qte_article"].sum(), merged["qte_n1"].sum(),
+            merged["com_n"].sum(), merged["com_n1"].sum(), cls="tr-total")
+        df_export = merged[["jour_abr","date_n","ttc_n","ht_n","qte_n","com_n",
+                             "budget_ca","budget_qte_article","ttc_n1","qte_n1","com_n1"]].copy()
+        df_export.columns = ["Jour","Date N","CA TTC N","CA HT N","Qté N","Commission N",
+                              "Budget CA","Budget Qté","CA TTC N-1 comp.","Qté N-1 comp.","Com. N-1 comp."]
 
     elif gran == "Semaine":
         dfn_s  = df_n.copy()
@@ -933,25 +944,33 @@ with tab_jour:
                    ttc_n=("ventes_ttc","sum"), ht_n=("ventes_ht","sum"),
                    qte_n=("qte","sum"), com_n=("commission","sum")).reset_index()
               if not dfn_s.empty else pd.DataFrame(columns=["iso_year","iso_week","ttc_n","ht_n","qte_n","com_n"]))
-        an1 = (dfn1_s.groupby("iso_week").agg(ttc_n1=("ventes_ttc","sum")).reset_index()
-               if not dfn1_s.empty else pd.DataFrame(columns=["iso_week","ttc_n1"]))
-        bdf_wk = pd.DataFrame(columns=["iso_week","budget_ca"])
+        # N-1 comparable : seules les semaines présentes dans N (left join)
+        an1 = (dfn1_s.groupby("iso_week").agg(
+                   ttc_n1=("ventes_ttc","sum"), qte_n1=("qte","sum"),
+                   com_n1=("commission","sum")).reset_index()
+               if not dfn1_s.empty else pd.DataFrame(columns=["iso_week","ttc_n1","qte_n1","com_n1"]))
+        bdf_wk = pd.DataFrame(columns=["iso_week","budget_ca","budget_qte_article"])
         if not df_budget.empty:
             _bw = df_budget.copy()
             _bw["iso_week"] = _bw["jour"].dt.isocalendar().week.astype(int)
-            bdf_wk = _bw.groupby("iso_week", as_index=False).agg(budget_ca=("budget_ca","sum"))
-        ws = pd.merge(an, an1, on="iso_week", how="outer")
+            bdf_wk = _bw.groupby("iso_week", as_index=False).agg(
+                budget_ca=("budget_ca","sum"), budget_qte_article=("budget_qte_article","sum"))
+        ws = pd.merge(an, an1, on="iso_week", how="left")
         ws = pd.merge(ws, bdf_wk, on="iso_week", how="left").fillna(0)
         ws = ws.sort_values(["iso_year","iso_week"])
         for _, row in ws.iterrows():
             tbody += combined_row(f"S{int(row['iso_week'])} — {int(row['iso_year'])}", "—",
-                row["ttc_n"], row["ht_n"], row["qte_n"], row["com_n"],
-                row["budget_ca"], row["ttc_n1"])
+                row["ttc_n"], row["budget_ca"], row["ttc_n1"],
+                row["qte_n"], row["budget_qte_article"], row["qte_n1"],
+                row["com_n"], row["com_n1"])
         tbody += combined_row("TOTAL", "—",
-            ws["ttc_n"].sum(), ws["ht_n"].sum(), ws["qte_n"].sum(), ws["com_n"].sum(),
-            ws["budget_ca"].sum(), ws["ttc_n1"].sum(), cls="tr-total")
-        df_export = ws[["iso_year","iso_week","ttc_n","ht_n","qte_n","com_n","budget_ca","ttc_n1"]].copy()
-        df_export.columns = ["Année","Semaine","CA TTC N","CA HT N","Qté N","Commission N","Budget CA","CA TTC N-1"]
+            ws["ttc_n"].sum(), ws["budget_ca"].sum(), ws["ttc_n1"].sum(),
+            ws["qte_n"].sum(), ws["budget_qte_article"].sum(), ws["qte_n1"].sum(),
+            ws["com_n"].sum(), ws["com_n1"].sum(), cls="tr-total")
+        df_export = ws[["iso_year","iso_week","ttc_n","ht_n","qte_n","com_n",
+                         "budget_ca","budget_qte_article","ttc_n1","qte_n1","com_n1"]].copy()
+        df_export.columns = ["Année","Semaine","CA TTC N","CA HT N","Qté N","Commission N",
+                              "Budget CA","Budget Qté","CA TTC N-1 comp.","Qté N-1 comp.","Com. N-1 comp."]
 
     else:  # Mois
         MOIS_FR = {1:"Janvier",2:"Février",3:"Mars",4:"Avril",5:"Mai",6:"Juin",
@@ -967,26 +986,35 @@ with tab_jour:
                 qte=("qte","sum"), com=("commission","sum")).reset_index()
         mn  = prep_mois(df_n).rename(columns={"ttc":"ttc_n","ht":"ht_n","qte":"qte_n","com":"com_n"})
         mn1_raw = prep_mois(df_n1)
-        mn1 = mn1_raw.rename(columns={"ttc":"ttc_n1"})[["month","ttc_n1"]] if not mn1_raw.empty else pd.DataFrame(columns=["month","ttc_n1"])
-        bdf_mo = pd.DataFrame(columns=["month","budget_ca"])
+        mn1 = (mn1_raw.rename(columns={"ttc":"ttc_n1","qte":"qte_n1","com":"com_n1"})[
+                   ["month","ttc_n1","qte_n1","com_n1"]]
+               if not mn1_raw.empty else pd.DataFrame(columns=["month","ttc_n1","qte_n1","com_n1"]))
+        bdf_mo = pd.DataFrame(columns=["month","budget_ca","budget_qte_article"])
         if not df_budget.empty:
             _bm = df_budget.copy()
             _bm["month"] = _bm["jour"].dt.month.astype(int)
-            bdf_mo = _bm.groupby("month", as_index=False).agg(budget_ca=("budget_ca","sum"))
-        ms = pd.merge(mn, mn1, on="month", how="outer")
+            bdf_mo = _bm.groupby("month", as_index=False).agg(
+                budget_ca=("budget_ca","sum"), budget_qte_article=("budget_qte_article","sum"))
+        # N-1 comparable : seuls les mois présents dans N (left join)
+        ms = pd.merge(mn, mn1, on="month", how="left")
         ms = pd.merge(ms, bdf_mo, on="month", how="left").fillna(0)
         ms = ms.sort_values(["year","month"])
         for _, row in ms.iterrows():
             tbody += combined_row(f"{MOIS_FR.get(int(row['month']),'')} {int(row['year'])}", "—",
-                row["ttc_n"], row["ht_n"], row["qte_n"], row["com_n"],
-                row["budget_ca"], row["ttc_n1"])
+                row["ttc_n"], row["budget_ca"], row["ttc_n1"],
+                row["qte_n"], row["budget_qte_article"], row["qte_n1"],
+                row["com_n"], row["com_n1"])
         tbody += combined_row("TOTAL", "—",
-            ms["ttc_n"].sum(), ms["ht_n"].sum(), ms["qte_n"].sum(), ms["com_n"].sum(),
-            ms["budget_ca"].sum(), ms["ttc_n1"].sum(), cls="tr-total")
-        df_export = ms[["year","month","ttc_n","ht_n","qte_n","com_n","budget_ca","ttc_n1"]].copy()
-        df_export.columns = ["Année","Mois","CA TTC N","CA HT N","Qté N","Commission N","Budget CA","CA TTC N-1"]
+            ms["ttc_n"].sum(), ms["budget_ca"].sum(), ms["ttc_n1"].sum(),
+            ms["qte_n"].sum(), ms["budget_qte_article"].sum(), ms["qte_n1"].sum(),
+            ms["com_n"].sum(), ms["com_n1"].sum(), cls="tr-total")
+        df_export = ms[["year","month","ttc_n","ht_n","qte_n","com_n",
+                         "budget_ca","budget_qte_article","ttc_n1","qte_n1","com_n1"]].copy()
+        df_export.columns = ["Année","Mois","CA TTC N","CA HT N","Qté N","Commission N",
+                              "Budget CA","Budget Qté","CA TTC N-1 comp.","Qté N-1 comp.","Com. N-1 comp."]
 
     tbody += "</tbody>"
+    st.caption("* N-1 à jours comparables")
     st.markdown(f'<div class="table-wrap"><table>{COMBINED_THEAD}{tbody}</table></div>',
                 unsafe_allow_html=True)
     st.markdown("<br>", unsafe_allow_html=True)
