@@ -16,6 +16,29 @@ st.divider()
 
 supabase = get_supabase()
 
+st.markdown("## 📥 Télécharger le modèle de référentiel")
+
+@st.cache_data(ttl=3600, show_spinner=False)
+def fetch_ref_template() -> bytes | None:
+    try:
+        return get_supabase().storage.from_("referentiel").download("referentiel_0.csv")
+    except Exception:
+        return None
+
+_ref_template = fetch_ref_template()
+if _ref_template:
+    st.download_button(
+        label="⬇️ Télécharger le modèle CSV (referentiel_0.csv)",
+        data=_ref_template,
+        file_name="referentiel_0.csv",
+        mime="text/csv",
+        key="btn_dl_ref_template",
+    )
+else:
+    st.warning("Modèle introuvable dans le bucket (referentiel/referentiel_0.csv).")
+
+st.divider()
+
 st.markdown("## 📦 Déposer un référentiel article (Excel / CSV)")
 
 uploaded = st.file_uploader(
