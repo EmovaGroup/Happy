@@ -54,28 +54,6 @@ store_labels = [s["label"] for s in stores]
 label_to_code = {s["label"]: s["code"] for s in stores}
 label_to_ville = {s["label"]: s["ville"] for s in stores}
 
-# ── Sélection du magasin ───────────────────────────────────────────────────────
-st.markdown("## 🏬 Sélection du magasin")
-
-if not stores:
-    st.warning("Aucun magasin disponible. Vérifiez la connexion à Supabase.")
-    st.stop()
-
-selected_label = st.selectbox(
-    "Magasin cible",
-    options=store_labels,
-    index=0,
-    key="budget_store_select",
-    help="Choisissez le magasin pour lequel vous uploadez le fichier budget.",
-)
-
-selected_code = label_to_code[selected_label]
-selected_ville = label_to_ville[selected_label]
-
-st.info(f"📍 Magasin sélectionné : **{selected_label}**")
-
-st.divider()
-
 # ── Modèle à télécharger ───────────────────────────────────────────────────────
 st.markdown("## 📥 Télécharger le modèle de budget")
 
@@ -97,6 +75,28 @@ if _template_bytes:
     )
 else:
     st.warning("Modèle introuvable dans le bucket (budget/budget_0.csv).")
+
+st.divider()
+
+# ── Sélection du magasin ───────────────────────────────────────────────────────
+st.markdown("## 🏬 Sélection du magasin")
+
+if not stores:
+    st.warning("Aucun magasin disponible. Vérifiez la connexion à Supabase.")
+    st.stop()
+
+selected_label = st.selectbox(
+    "Magasin cible",
+    options=store_labels,
+    index=0,
+    key="budget_store_select",
+    help="Choisissez le magasin pour lequel vous uploadez le fichier budget.",
+)
+
+selected_code = label_to_code[selected_label]
+selected_ville = label_to_ville[selected_label]
+
+st.info(f"📍 Magasin sélectionné : **{selected_label}**")
 
 st.divider()
 
