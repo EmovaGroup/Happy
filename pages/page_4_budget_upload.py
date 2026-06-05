@@ -55,7 +55,7 @@ label_to_code = {s["label"]: s["code"] for s in stores}
 label_to_ville = {s["label"]: s["ville"] for s in stores}
 
 # ── Modèle à télécharger ───────────────────────────────────────────────────────
-st.markdown("## 📥 Télécharger le modèle de budget")
+st.markdown("## 📥 Télécharger le modèle de fichier")
 
 @st.cache_data(ttl=3600, show_spinner=False)
 def fetch_template() -> bytes | None:

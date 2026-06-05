@@ -16,7 +16,7 @@ st.divider()
 
 supabase = get_supabase()
 
-st.markdown("## 📥 Télécharger le modèle de référentiel")
+st.markdown("## 📥 Télécharger le modèle de fichier")
 
 @st.cache_data(ttl=3600, show_spinner=False)
 def fetch_ref_template() -> bytes | None:
