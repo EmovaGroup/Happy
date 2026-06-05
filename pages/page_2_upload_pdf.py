@@ -1,5 +1,4 @@
 # pages/page_2_upload_pdf.py
-import re
 import streamlit as st
 from datetime import datetime
 
@@ -16,84 +15,58 @@ st.divider()
 
 supabase = get_supabase()
 
-st.markdown("## 📄 Déposer un PDF (classé par magasin /date)")
+st.markdown("## 📄 Déposer un PDF (classé par magasin / date)")
+
 
 @st.cache_data(ttl=3600, show_spinner="⏳ Chargement des magasins...")
-def load_store_names() -> list[str]:
-    table = (
+def load_stores_pdf():
+    res_codes = (
         get_supabase()
-        .table("v_matrix")
-        .select("store_name")
-        .neq("store_name", "")
-        .order("store_name", desc=False)
+        .table("v_budget_vs_ca_jour")
+        .select("code_magasin,nom_ville")
+        .order("code_magasin")
+        .limit(500)
+        .execute()
     )
+    seen: dict[str, str] = {}
+    for r in res_codes.data or []:
+        c, v = r.get("code_magasin"), r.get("nom_ville")
+        if c and v and c not in seen:
+            seen[c] = v
 
-    batch_size = 1000
-    offset = 0
-    all_rows = []
-    while True:
-        res = table.range(offset, offset + batch_size - 1).execute()
-        if not res.data:
-            break
-        all_rows.extend(res.data)
-        offset += batch_size
+    stores = [{"code": c, "ville": v, "label": f"{c} – {v}"} for c, v in seen.items()]
+    stores.sort(key=lambda x: x["code"])
+    return stores
 
-    return sorted({r["store_name"] for r in all_rows if r.get("store_name")})
 
-def _parse_store_city_code(store_name: str) -> tuple[str, str]:
-    """
-    Ex: "Magasin ANGLET 0047" -> ("ANGLET", "0047")
-    Gère aussi "MAGASIN_ANGLET_0047" etc.
-    """
-    s = (store_name or "").strip()
+stores = load_stores_pdf()
 
-    # retire "Magasin" si présent
-    s = re.sub(r"(?i)\bmagasin\b", "", s).strip()
-
-    # remplace underscores par espaces pour parser
-    s = s.replace("_", " ").strip()
-
-    m = re.search(r"(.+?)\s*(\d{4})\s*$", s)
-    if m:
-        city = m.group(1).strip()
-        code = m.group(2).strip()
-    else:
-        city = s.strip()
-        code = ""
-
-    # normalise ville
-    city = re.sub(r"\s+", " ", city).strip()
-    return city, code
-
-def build_object_path(store_name: str, date_code: str) -> str:
-    """
-    Structure demandée exemple:
-      magasin_ANGLET_0047/anglet_0047_260219.pdf
-    """
-    city, code = _parse_store_city_code(store_name)
-
-    city_upper = re.sub(r"\s+", "_", city.upper())
-    city_lower = re.sub(r"\s+", "_", city.lower())
-
-    folder = f"magasin_{city_upper}_{code}" if code else f"magasin_{city_upper}"
-    filename_base = f"{city_lower}_{code}" if code else f"{city_lower}"
-
-    filename = f"{filename_base}_{date_code}.pdf"
-    return f"{folder}/{filename}"
-
-stores = load_store_names()
 if not stores:
-    st.error("Aucun magasin trouvé dans v_matrix (colonne store_name).")
+    st.error("Aucun magasin trouvé. Vérifiez la connexion à Supabase.")
     st.stop()
 
-store_selected = st.selectbox("🏬 Sélectionne le magasin", stores)
-date_code = st.text_input("📅 Date du PDF (format YYMMDD)", placeholder="260219", max_chars=6)
+store_labels   = [s["label"] for s in stores]
+label_to_code  = {s["label"]: s["code"]  for s in stores}
+label_to_ville = {s["label"]: s["ville"] for s in stores}
+
+selected_label = st.selectbox(
+    "🏬 Sélectionne le magasin",
+    options=store_labels,
+    index=0,
+    key="pdf_store_select",
+)
+selected_code = label_to_code[selected_label]
+
+date_code = st.text_input(
+    "📅 Date du PDF (format YYMMDD)",
+    placeholder="260219",
+    max_chars=6,
+)
 uploaded = st.file_uploader("Choisir un fichier PDF", type=["pdf"])
 
-# Preview chemin cible
-preview_path = None
-if store_selected and date_code and len(date_code) == 6 and date_code.isdigit():
-    preview_path = build_object_path(store_selected, date_code)
+# Aperçu du chemin cible
+if selected_code and date_code and len(date_code) == 6 and date_code.isdigit():
+    preview_path = f"{selected_code}/{selected_code.lower()}_{date_code}.pdf"
     st.caption(f"📁 Chemin cible : `{preview_path}`")
 
 if st.button("⬆️ Uploader le PDF", key="btn_upload_pdf", type="primary"):
@@ -107,29 +80,30 @@ if st.button("⬆️ Uploader le PDF", key="btn_upload_pdf", type="primary"):
 
     with st.spinner("⏳ Upload en cours..."):
         try:
-            object_path = build_object_path(store_selected, date_code)
+            object_path    = f"{selected_code}/{selected_code.lower()}_{date_code}.pdf"
             uploader_email = st.session_state.get("sb_user", {}).get("email", "inconnu")
 
             supabase.storage.from_("ventes").upload(
                 path=object_path,
                 file=uploaded.getvalue(),
-                file_options={
-                    "content-type": "application/pdf",
-                    "upsert": "true",
-                },
+                file_options={"content-type": "application/pdf", "upsert": "true"},
             )
 
             try:
                 supabase.table("upload_logs").insert({
-                    "uploader": uploader_email,
-                    "store_name": store_selected,
-                    "file_path": object_path,
-                    "file_type": "pdf",
+                    "uploader":   uploader_email,
+                    "store_name": selected_code,
+                    "file_path":  object_path,
+                    "file_type":  "pdf",
                 }).execute()
             except Exception:
                 pass
 
-            st.success(f"✅ Upload réussi par **{uploader_email}** : `{object_path}`")
+            st.success(
+                f"✅ Upload réussi par **{uploader_email}**\n\n"
+                f"🏬 Magasin : **{selected_label}**\n\n"
+                f"📁 Fichier : `{object_path}`"
+            )
 
         except Exception as e:
             st.error(f"❌ Upload impossible : {e}")
