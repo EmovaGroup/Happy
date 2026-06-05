@@ -260,36 +260,23 @@ def safe_pct(n_val, n1_val):
 # =============================================================================
 # Load filters
 # =============================================================================
-@st.cache_data(ttl=300, show_spinner="⏳ Chargement des filtres...")
+@st.cache_data(ttl=3600, show_spinner="⏳ Chargement des filtres...")
 def load_filters():
     supabase = get_supabase()
     r1 = supabase.table("v_matrix").select("period_date").order("period_date", desc=False).limit(1).execute()
     r2 = supabase.table("v_matrix").select("period_date").order("period_date", desc=True).limit(1).execute()
-
-    batch_size = 1000
-    offset = 0
-    all_stores = []
-    while True:
-        res = (
-            supabase.table("v_matrix")
-            .select("store_name")
-            .neq("store_name", "")
-            .order("store_name", desc=False)
-            .range(offset, offset + batch_size - 1)
-            .execute()
-        )
-        if not res.data:
-            break
-        all_stores.extend(res.data)
-        offset += batch_size
-
+    res_mag = supabase.table("magasins").select("store_name_pdf,code_magasin,nom_ville").execute()
     dmin = pd.to_datetime(r1.data[0]["period_date"]).date() if r1.data else date.today()
     dmax = pd.to_datetime(r2.data[0]["period_date"]).date() if r2.data else date.today()
-    stores = sorted({row["store_name"] for row in all_stores if row.get("store_name")})
-    return dmin, dmax, stores
+    return dmin, dmax, res_mag.data or []
 
 
-dmin, dmax, stores = load_filters()
+dmin, dmax, stores_data = load_filters()
+_code_to_store = {r["code_magasin"]: r["store_name_pdf"] for r in stores_data
+                  if r.get("code_magasin") and r.get("store_name_pdf")}
+_code_to_ville = {r["code_magasin"]: r["nom_ville"] for r in stores_data
+                  if r.get("code_magasin") and r.get("nom_ville")}
+_store_codes   = sorted(_code_to_store.keys())
 
 # =============================================================================
 # Load data
@@ -311,7 +298,7 @@ def load_period(dstart: date, dend: date, store_names: list[str]) -> pd.DataFram
             .order("store_name",   desc=False)
             .order("code_article", desc=False)
         )
-        if store_names and "Tous les magasins" not in store_names:
+        if store_names:
             query = query.in_("store_name", store_names)
         res = query.range(offset, offset + batch_size - 1).execute()
         if not res.data:
@@ -339,12 +326,6 @@ def load_period(dstart: date, dend: date, store_names: list[str]) -> pd.DataFram
     df["iso_label"]      = "S" + df["iso_week"].astype(str).str.zfill(2) + "-" + df["iso_year"].astype(str)
     return df
 
-
-@st.cache_data(ttl=3600, show_spinner=False)
-def load_magasins_mapping() -> dict:
-    supabase = get_supabase()
-    res = supabase.table("magasins").select("store_name_pdf,nom_ville").execute()
-    return {r["store_name_pdf"]: r.get("nom_ville") for r in (res.data or []) if r.get("store_name_pdf")}
 
 
 @st.cache_data(ttl=300, show_spinner="⏳ Chargement budget vs CA...")
@@ -415,11 +396,10 @@ with col_f2:
                      type="primary" if st.session_state["gran_nvsn1"] == "Mois"    else "secondary"):
             st.session_state["gran_nvsn1"] = "Mois"
 with col_f3:
-    st.markdown("**🏬 Magasins**")
-    store_options = ["Tous les magasins"] + stores
-    selected_stores = st.multiselect(
+    st.markdown("**🏬 Code magasin**")
+    selected_codes = st.multiselect(
         "",
-        store_options,
+        ["Tous les magasins"] + _store_codes,
         default=["Tous les magasins"],
         label_visibility="collapsed",
         key="stores_nvsn1",
@@ -440,17 +420,18 @@ st.caption(
 
 # ── Bouton chargement ─────────────────────────────────────────────────────────
 if st.button("⚡ Charger / Actualiser", key="btn_nvsn1", type="primary", use_container_width=True):
-    _mapping = load_magasins_mapping()
-    if selected_stores and "Tous les magasins" not in selected_stores:
-        _nom_villes = tuple(v for s in selected_stores if (v := _mapping.get(s)))
+    if selected_codes and "Tous les magasins" not in selected_codes:
+        _selected_stores = [_code_to_store[c] for c in selected_codes if c in _code_to_store]
+        _nom_villes      = tuple(_code_to_ville[c] for c in selected_codes if c in _code_to_ville)
     else:
-        _nom_villes = ()
+        _selected_stores = []
+        _nom_villes      = ()
 
     with st.spinner("⏳ Budget en cours..."):
         st.session_state["nvsn1_dfbudget"] = load_budget_summary(dstart_n, dend_n, _nom_villes)
     with st.spinner("⏳ Chargement N vs N-1..."):
-        st.session_state["nvsn1_dfn"]  = load_period(dstart_n,  dend_n,  selected_stores)
-        st.session_state["nvsn1_dfn1"] = load_period(dstart_n1, dend_n1, selected_stores)
+        st.session_state["nvsn1_dfn"]  = load_period(dstart_n,  dend_n,  _selected_stores)
+        st.session_state["nvsn1_dfn1"] = load_period(dstart_n1, dend_n1, _selected_stores)
     st.session_state["nvsn1_dstart"] = dstart_n
     st.session_state["nvsn1_dend"]   = dend_n
 
@@ -849,7 +830,7 @@ with tab_jour:
     COMBINED_THEAD = """
     <thead><tr>
       <th class="sticky-left">Période</th>
-      <th>Date N</th>
+      <th>Date N</th><th>Date N-1</th>
       <th>CA TTC N</th><th>Budget CA</th><th>% Budget CA</th>
       <th class="sep-col">CA TTC N-1*</th><th>% N-1</th>
       <th class="sep-col">Qté N</th><th>Budget Qté</th><th>% Budget Qté</th>
@@ -857,11 +838,11 @@ with tab_jour:
       <th class="sep-col">Com. N</th><th>Com. N-1*</th><th>% Com.</th>
     </tr></thead>"""
 
-    def combined_row(label, date_n, ttc_n, bca, ttc_n1, qte_n, bqte, qte_n1, com_n, com_n1, cls=""):
+    def combined_row(label, date_n, date_n1, ttc_n, bca, ttc_n1, qte_n, bqte, qte_n1, com_n, com_n1, cls=""):
         return f"""
         <tr class="{cls}">
           <td class="sticky-left">{label}</td>
-          <td>{date_n}</td>
+          <td>{date_n}</td><td>{date_n1}</td>
           <td>{fmt_eur(ttc_n)}</td><td>{fmt_eur(bca)}</td><td>{_bud_evol_pill(ttc_n, bca)}</td>
           <td class="sep-col">{fmt_eur(ttc_n1)}</td><td>{evol_pill(ttc_n, ttc_n1)}</td>
           <td class="sep-col">{fmt_qte(qte_n)}</td><td>{fmt_qte(bqte)}</td><td>{_bud_evol_pill(qte_n, bqte)}</td>
@@ -912,18 +893,19 @@ with tab_jour:
         merged = merged.fillna(0)
 
         for (yr, wk), wdf in merged.groupby(["iso_year","iso_week"], sort=True):
-            tbody += combined_row(f"S{int(wk)}", "—",
+            tbody += combined_row(f"S{int(wk)}", "—", "—",
                 wdf["ttc_n"].sum(), wdf["budget_ca"].sum(), wdf["ttc_n1"].sum(),
                 wdf["qte_n"].sum(), wdf["budget_qte_article"].sum(), wdf["qte_n1"].sum(),
                 wdf["com_n"].sum(), wdf["com_n1"].sum(), cls="tr-week")
             for _, row in wdf.iterrows():
-                dn_str = row["date_n"].strftime("%d/%m/%Y") if pd.notna(row["date_n"]) else "—"
+                dn_str  = row["date_n"].strftime("%d/%m/%Y") if pd.notna(row["date_n"]) else "—"
+                dn1_str = (row["date_n"] - timedelta(days=364)).strftime("%d/%m/%Y") if pd.notna(row["date_n"]) else "—"
                 tbody += combined_row(
-                    row["jour_abr"], dn_str,
+                    row["jour_abr"], dn_str, dn1_str,
                     row["ttc_n"], row["budget_ca"], row["ttc_n1"],
                     row["qte_n"], row["budget_qte_article"], row["qte_n1"],
                     row["com_n"], row["com_n1"])
-        tbody += combined_row("TOTAL", "—",
+        tbody += combined_row("TOTAL", "—", "—",
             merged["ttc_n"].sum(), merged["budget_ca"].sum(), merged["ttc_n1"].sum(),
             merged["qte_n"].sum(), merged["budget_qte_article"].sum(), merged["qte_n1"].sum(),
             merged["com_n"].sum(), merged["com_n1"].sum(), cls="tr-total")
@@ -959,11 +941,13 @@ with tab_jour:
         ws = pd.merge(ws, bdf_wk, on="iso_week", how="left").fillna(0)
         ws = ws.sort_values(["iso_year","iso_week"])
         for _, row in ws.iterrows():
-            tbody += combined_row(f"S{int(row['iso_week'])} — {int(row['iso_year'])}", "—",
+            tbody += combined_row(
+                f"S{int(row['iso_week'])} — {int(row['iso_year'])}",
+                "—", f"S{int(row['iso_week'])} {year_n1_label}",
                 row["ttc_n"], row["budget_ca"], row["ttc_n1"],
                 row["qte_n"], row["budget_qte_article"], row["qte_n1"],
                 row["com_n"], row["com_n1"])
-        tbody += combined_row("TOTAL", "—",
+        tbody += combined_row("TOTAL", "—", "—",
             ws["ttc_n"].sum(), ws["budget_ca"].sum(), ws["ttc_n1"].sum(),
             ws["qte_n"].sum(), ws["budget_qte_article"].sum(), ws["qte_n1"].sum(),
             ws["com_n"].sum(), ws["com_n1"].sum(), cls="tr-total")
@@ -1000,11 +984,13 @@ with tab_jour:
         ms = pd.merge(ms, bdf_mo, on="month", how="left").fillna(0)
         ms = ms.sort_values(["year","month"])
         for _, row in ms.iterrows():
-            tbody += combined_row(f"{MOIS_FR.get(int(row['month']),'')} {int(row['year'])}", "—",
+            tbody += combined_row(
+                f"{MOIS_FR.get(int(row['month']),'')} {int(row['year'])}",
+                "—", f"{MOIS_FR.get(int(row['month']),'?')} {year_n1_label}",
                 row["ttc_n"], row["budget_ca"], row["ttc_n1"],
                 row["qte_n"], row["budget_qte_article"], row["qte_n1"],
                 row["com_n"], row["com_n1"])
-        tbody += combined_row("TOTAL", "—",
+        tbody += combined_row("TOTAL", "—", "—",
             ms["ttc_n"].sum(), ms["budget_ca"].sum(), ms["ttc_n1"].sum(),
             ms["qte_n"].sum(), ms["budget_qte_article"].sum(), ms["qte_n1"].sum(),
             ms["com_n"].sum(), ms["com_n1"].sum(), cls="tr-total")

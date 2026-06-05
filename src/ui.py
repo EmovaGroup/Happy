@@ -317,7 +317,7 @@ def tabs_nav(active: str = "nvsn1"):
 
     with c2:
         if st.button(
-            "📄 Upload PDF",
+            "📋 Journalisation",
             key="nav_upload_btn",
             use_container_width=True,
             type="primary" if active == "upload" else "secondary",
@@ -326,7 +326,7 @@ def tabs_nav(active: str = "nvsn1"):
 
     with c3:
         if st.button(
-            "📦 Référentiel",
+            "⬆️ Upload référentiel",
             key="nav_referentiel_btn",
             use_container_width=True,
             type="primary" if active == "referentiel" else "secondary",
